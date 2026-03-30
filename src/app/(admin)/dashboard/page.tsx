@@ -329,7 +329,7 @@ function ActiveUsersMap() {
       <Title as="h5" className="mb-4 text-base font-semibold">Active Users</Title>
       <div
         ref={(el) => { (ref as any)(el); (mapContainerRef as any).current = el; }}
-        className="flex flex-col [&>figure]:flex [&>figure]:items-center [&>figure]:justify-center [&_figure]:!bg-transparent [&_svg]:dark:invert"
+        className="flex flex-col [&>figure]:flex [&>figure]:items-center [&>figure]:justify-center [&_figure]:!bg-transparent"
       >
         {!ready ? (
           <div className="flex h-[300px] items-center justify-center"><Loader variant="spinner" size="lg" /></div>
@@ -340,14 +340,17 @@ function ActiveUsersMap() {
             size={width || 500}
             data={mapData}
             textLabelFunction={createMapLabels}
-            styleFunction={({ countryValue }: any) => ({
-              fill: '#F26B50',
-              fillOpacity: countryValue ? 0.15 : 0,
-              stroke: '#e5e7eb',
-              strokeWidth: 1,
-              strokeOpacity: 0.5,
-              cursor: countryValue ? 'pointer' : 'default',
-            })}
+            styleFunction={({ countryCode, countryValue }: any) => {
+              const customColor = countryColorMap[countryCode?.toLowerCase()];
+              return {
+                fill: customColor || '#F26B50',
+                fillOpacity: countryValue ? (customColor ? 1 : 0) : 0,
+                stroke: '#e5e7eb',
+                strokeWidth: 1,
+                strokeOpacity: 0.5,
+                cursor: countryValue ? 'pointer' : 'default',
+              };
+            }}
           />
         )}
       </div>
