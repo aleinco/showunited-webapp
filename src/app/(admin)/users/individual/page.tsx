@@ -17,6 +17,7 @@ import {
 } from 'react-icons/pi';
 import AvatarCard from '@/components/ui/avatar-card';
 import DeletePopover from '@/components/core/delete-popover';
+import EmailComposeModal from '@/components/email-compose-modal';
 import { exportToCSV } from '@/utils/export-to-csv';
 import cn from '@/utils/class-names';
 import toast from 'react-hot-toast';
@@ -59,6 +60,7 @@ export default function IndividualUsersPage() {
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   const [bustCache, setBustCache] = useState(0);
   const { data, isLoading, isError, refetch } = useQuery({
@@ -168,9 +170,9 @@ export default function IndividualUsersPage() {
   }, [selectedRows, filtered]);
 
   const handleSendEmail = useCallback(() => {
-    const emails = selectedRows.map((r) => r.email).filter((e) => e && e !== '---');
-    if (emails.length === 0) { toast.error('No valid emails'); return; }
-    window.open(`mailto:${emails.join(',')}`, '_blank');
+    const validRecipients = selectedRows.filter((r) => r.email && r.email !== '---');
+    if (validRecipients.length === 0) { toast.error('No valid emails in selection'); return; }
+    setShowEmailModal(true);
   }, [selectedRows]);
 
   return (
@@ -337,6 +339,15 @@ export default function IndividualUsersPage() {
           </div>
         )}
       </div>
+
+      {/* Email Compose Modal */}
+      {showEmailModal && (
+        <EmailComposeModal
+          recipients={selectedRows.map((r) => ({ name: r.name, email: r.email }))}
+          onClose={() => setShowEmailModal(false)}
+          onSent={() => setSelectedIds(new Set())}
+        />
+      )}
     </div>
   );
 }
