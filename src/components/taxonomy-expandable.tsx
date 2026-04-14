@@ -299,13 +299,67 @@ function SubCategoryList({
   );
 }
 
+// ─── Category Form (create/edit) ───────────────────────────────────
+function CategoryForm({
+  initial,
+  onSave,
+  onCancel,
+}: {
+  initial?: { name: string; seq: number; isBody: boolean; isAudition: boolean; isVocal: boolean };
+  onSave: (data: { name: string; seq: number; isBody: boolean; isAudition: boolean; isVocal: boolean }) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(initial?.name || '');
+  const [seq, setSeq] = useState(initial?.seq || 0);
+  const [isBody, setIsBody] = useState(initial?.isBody || false);
+  const [isAudition, setIsAudition] = useState(initial?.isAudition || false);
+  const [isVocal, setIsVocal] = useState(initial?.isVocal || false);
+
+  function RadioYesNo({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+    return (
+      <div className="flex items-center gap-3">
+        <Text className="text-sm text-gray-600 w-48">{label}</Text>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input type="radio" checked={value} onChange={() => onChange(true)}
+            className="h-4 w-4 text-primary accent-primary" />
+          <Text className="text-sm">Yes</Text>
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input type="radio" checked={!value} onChange={() => onChange(false)}
+            className="h-4 w-4 accent-primary" />
+          <Text className="text-sm">No</Text>
+        </label>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+      <div className="flex gap-3">
+        <Input size="sm" label="Category Name *" placeholder="Category name"
+          value={name} onChange={(e) => setName(e.target.value)} className="flex-1" autoFocus />
+        <Input size="sm" label="Sequence Number *" type="number"
+          value={String(seq)} onChange={(e) => setSeq(Number(e.target.value))} className="w-32" />
+      </div>
+      <RadioYesNo label="Do we need to collect body measurement?" value={isBody} onChange={setIsBody} />
+      <RadioYesNo label="Is this going to be auditioned?" value={isAudition} onChange={setIsAudition} />
+      <RadioYesNo label="Vocal Category?" value={isVocal} onChange={setIsVocal} />
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <Button size="sm" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button size="sm" onClick={() => name.trim() && onSave({ name, seq, isBody, isAudition, isVocal })} disabled={!name.trim()}>
+          {initial ? 'Save Changes' : 'Create Category'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Level 1: Category Table ───────────────────────────────────────
 export default function TaxonomyExpandable({ categoryType, title, description }: Props) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
-  const [editName, setEditName] = useState('');
   const [creating, setCreating] = useState(false);
 
   const queryKey = ['taxonomy-tree', categoryType];
@@ -323,22 +377,35 @@ export default function TaxonomyExpandable({ categoryType, title, description }:
     queryClient.invalidateQueries({ queryKey });
   }
 
-  async function handleCreateCategory(name: string, seq: number) {
+  async function handleCreateCategory(formData: { name: string; seq: number; isBody: boolean; isAudition: boolean; isVocal: boolean }) {
     const res = await taxonomyAction({
       action: 'create',
       table: 'MasterCategory',
-      data: { CategoryName: name, SequenceNumber: seq, CategoryType: categoryType },
+      data: {
+        CategoryName: formData.name,
+        SequenceNumber: formData.seq,
+        CategoryType: categoryType,
+        IsBodyMeasurementRequired: formData.isBody,
+        IsAuditionRequired: formData.isAudition,
+        IsVocalCategory: formData.isVocal,
+      },
     });
     if (res.success) { toast.success('Category created'); invalidate(); setCreating(false); }
     else toast.error(res.error);
   }
 
-  async function handleUpdateCategory(id: number) {
+  async function handleUpdateCategory(id: number, formData: { name: string; seq: number; isBody: boolean; isAudition: boolean; isVocal: boolean }) {
     const res = await taxonomyAction({
       action: 'update',
       table: 'MasterCategory',
       id,
-      data: { CategoryName: editName },
+      data: {
+        CategoryName: formData.name,
+        SequenceNumber: formData.seq,
+        IsBodyMeasurementRequired: formData.isBody,
+        IsAuditionRequired: formData.isAudition,
+        IsVocalCategory: formData.isVocal,
+      },
     });
     if (res.success) { toast.success('Updated'); invalidate(); setEditId(null); }
     else toast.error(res.error);
@@ -386,10 +453,10 @@ export default function TaxonomyExpandable({ categoryType, title, description }:
           <Text className="w-20 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</Text>
         </div>
 
-        {/* Create row */}
+        {/* Create form */}
         {creating && (
-          <div className="border-b border-muted px-4 py-2">
-            <InlineCreateRow placeholder="New category name..." onSave={handleCreateCategory} onCancel={() => setCreating(false)} />
+          <div className="border-b border-muted px-4 py-3">
+            <CategoryForm onSave={handleCreateCategory} onCancel={() => setCreating(false)} />
           </div>
         )}
 
@@ -424,43 +491,45 @@ export default function TaxonomyExpandable({ categoryType, title, description }:
                       : <PiCaretRightBold className="h-3.5 w-3.5" />}
                   </button>
 
-                  {/* Name */}
-                  {editId === cat.CategoryId ? (
-                    <div className="flex flex-1 items-center gap-2">
-                      <Input size="sm" value={editName} onChange={(e) => setEditName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleUpdateCategory(cat.CategoryId)} autoFocus className="flex-1" />
-                      <ActionIcon size="sm" variant="flat" color="success" onClick={() => handleUpdateCategory(cat.CategoryId)}>
-                        <PiCheckBold className="h-4 w-4" />
-                      </ActionIcon>
-                      <ActionIcon size="sm" variant="flat" color="danger" onClick={() => setEditId(null)}>
-                        <PiXBold className="h-4 w-4" />
-                      </ActionIcon>
-                    </div>
-                  ) : (
-                    <>
-                      <Text className="flex-1 text-sm font-semibold text-gray-900">{cat.CategoryName}</Text>
-                      <div className="w-24 text-center">
-                        <Badge variant="flat" color="secondary" className="text-xs">{totalSubs}</Badge>
-                      </div>
-                      <Text className="w-16 text-center text-xs text-gray-400">#{cat.SequenceNumber}</Text>
-                      <div className="flex w-24 items-center justify-center gap-1">
-                        {cat.IsBodyMeasurementRequired && <Badge variant="flat" color="info" className="text-[9px] px-1">Body</Badge>}
-                        {cat.IsAuditionRequired && <Badge variant="flat" color="warning" className="text-[9px] px-1">Aud.</Badge>}
-                        {cat.IsVocalCategory && <Badge variant="flat" color="success" className="text-[9px] px-1">Vocal</Badge>}
-                      </div>
-                      <div className="flex w-20 items-center justify-end gap-1">
-                        <ActionIcon size="sm" variant="outline"
-                          onClick={() => { setEditId(cat.CategoryId); setEditName(cat.CategoryName); }}>
-                          <PiPencilSimpleDuotone className="h-4 w-4" />
-                        </ActionIcon>
-                        <ActionIcon size="sm" variant="outline" className="text-red-500"
-                          onClick={() => handleDeleteCategory(cat.CategoryId)}>
-                          <PiTrashDuotone className="h-4 w-4" />
-                        </ActionIcon>
-                      </div>
-                    </>
-                  )}
+                  {/* Category row content */}
+                  <Text className="flex-1 text-sm font-semibold text-gray-900">{cat.CategoryName}</Text>
+                  <div className="w-24 text-center">
+                    <Badge variant="flat" color="secondary" className="text-xs">{totalSubs}</Badge>
+                  </div>
+                  <Text className="w-16 text-center text-xs text-gray-400">#{cat.SequenceNumber}</Text>
+                  <div className="flex w-24 items-center justify-center gap-1">
+                    {cat.IsBodyMeasurementRequired && <Badge variant="flat" color="info" className="text-[9px] px-1">Body</Badge>}
+                    {cat.IsAuditionRequired && <Badge variant="flat" color="warning" className="text-[9px] px-1">Aud.</Badge>}
+                    {cat.IsVocalCategory && <Badge variant="flat" color="success" className="text-[9px] px-1">Vocal</Badge>}
+                  </div>
+                  <div className="flex w-20 items-center justify-end gap-1">
+                    <ActionIcon size="sm" variant="outline"
+                      onClick={() => setEditId(cat.CategoryId)}>
+                      <PiPencilSimpleDuotone className="h-4 w-4" />
+                    </ActionIcon>
+                    <ActionIcon size="sm" variant="outline" className="text-red-500"
+                      onClick={() => handleDeleteCategory(cat.CategoryId)}>
+                      <PiTrashDuotone className="h-4 w-4" />
+                    </ActionIcon>
+                  </div>
                 </div>
+
+                {/* Edit form (replaces row when editing) */}
+                {editId === cat.CategoryId && (
+                  <div className="border-b border-muted px-4 py-3">
+                    <CategoryForm
+                      initial={{
+                        name: cat.CategoryName,
+                        seq: cat.SequenceNumber,
+                        isBody: !!cat.IsBodyMeasurementRequired,
+                        isAudition: !!cat.IsAuditionRequired,
+                        isVocal: !!cat.IsVocalCategory,
+                      }}
+                      onSave={(formData) => handleUpdateCategory(cat.CategoryId, formData)}
+                      onCancel={() => setEditId(null)}
+                    />
+                  </div>
+                )}
 
                 {/* Expanded: SubCategories */}
                 {isExpanded && (
