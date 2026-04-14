@@ -45,6 +45,7 @@ export default function EmailComposeModal({
   const [cc, setCc] = useState('');
   const [bcc, setBcc] = useState('');
   const [showCcBcc, setShowCcBcc] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
   const [subject, setSubject] = useState(defaultSubject || '');
   const [body, setBody] = useState(defaultBody || '');
   const [sending, setSending] = useState(false);
@@ -64,6 +65,14 @@ export default function EmailComposeModal({
 
   function removeRecipient(email: string) {
     setTo((prev) => prev.filter((r) => r.email !== email));
+  }
+
+  function addRecipient(input: string) {
+    const emails = input.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean);
+    const valid = emails.filter((e) => e.includes('@') && !to.some((r) => r.email === e));
+    if (valid.length === 0) return;
+    setTo((prev) => [...prev, ...valid.map((e) => ({ name: '', email: e }))]);
+    setNewEmail('');
   }
 
   async function handleSend() {
@@ -138,9 +147,9 @@ export default function EmailComposeModal({
           )}
 
           {/* To field */}
-          <div className="flex items-center gap-2">
-            <Text className="w-12 shrink-0 text-sm font-medium text-gray-500">To:</Text>
-            <div className="flex flex-1 flex-wrap items-center gap-1.5 rounded-md border px-2 py-1.5">
+          <div className="flex items-start gap-2">
+            <Text className="w-12 shrink-0 pt-2 text-sm font-medium text-gray-500">To:</Text>
+            <div className="flex flex-1 flex-wrap items-center gap-1.5 rounded-md border px-2 py-1.5 min-h-[38px]">
               {to.map((r) => (
                 <Badge key={r.email} variant="flat" color="primary" className="gap-1 pr-1">
                   <span className="max-w-[180px] truncate text-xs">
@@ -154,11 +163,22 @@ export default function EmailComposeModal({
                   </button>
                 </Badge>
               ))}
-              {to.length === 0 && (
-                <Text className="text-xs text-gray-400">No recipients</Text>
-              )}
+              <input
+                type="text"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
+                    e.preventDefault();
+                    addRecipient(newEmail);
+                  }
+                }}
+                onBlur={() => { if (newEmail.trim()) addRecipient(newEmail); }}
+                placeholder={to.length === 0 ? 'Type email and press Enter...' : 'Add more...'}
+                className="min-w-[120px] flex-1 border-none bg-transparent py-0.5 text-sm outline-none placeholder:text-gray-400"
+              />
             </div>
-            <button onClick={() => setShowCcBcc(!showCcBcc)} className="text-xs text-primary hover:underline">
+            <button onClick={() => setShowCcBcc(!showCcBcc)} className="shrink-0 pt-2 text-xs text-primary hover:underline">
               CC/BCC
             </button>
           </div>

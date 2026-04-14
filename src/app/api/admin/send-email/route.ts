@@ -3,8 +3,8 @@ import nodemailer from 'nodemailer';
 
 // SMTP config — can be overridden by env vars
 const SMTP_HOST = process.env.SMTP_HOST || 'a-digital-net.correoseguro.dinaserver.com';
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '465', 10);
-const SMTP_USER = process.env.SMTP_USER || 'info@a-digital.net';
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
+const SMTP_USER = process.env.SMTP_USER || 'ion@a-digital.net';
 const SMTP_PASS = process.env.SMTP_PASS || 'tSoTd1;951./';
 const SMTP_FROM_NAME = process.env.SMTP_FROM_NAME || 'Show United';
 const SMTP_FROM_EMAIL = process.env.SMTP_FROM_EMAIL || SMTP_USER;
