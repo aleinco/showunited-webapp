@@ -32,8 +32,8 @@ export async function GET(request: NextRequest) {
           c.CategoryName as category,
           sc.SubCategoryName as subCategory
         FROM MasterIndividualUser u
-        LEFT JOIN IndividualCategory c ON u.CategoryId = c.IndividualCategoryId
-        LEFT JOIN IndividualSubCategory sc ON u.SubCategoryId = sc.IndividualSubCategoryId
+        LEFT JOIN MasterCategory c ON u.CategoryId = c.CategoryId
+        LEFT JOIN MasterSubCategory sc ON u.SubCategoryId = sc.SubCategoryId
         WHERE u.IndividualUserId = @id
       `);
 

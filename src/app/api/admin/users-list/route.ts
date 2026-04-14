@@ -40,8 +40,8 @@ export async function GET() {
          WHERE IndividualUserId = u.IndividualUserId AND StatusId = 1
          ORDER BY IndividualUserImageId DESC) as photo
       FROM MasterIndividualUser u
-      LEFT JOIN IndividualCategory c ON u.CategoryId = c.IndividualCategoryId
-      LEFT JOIN IndividualSubCategory sc ON u.SubCategoryId = sc.IndividualSubCategoryId
+      LEFT JOIN MasterCategory c ON u.CategoryId = c.CategoryId
+      LEFT JOIN MasterSubCategory sc ON u.SubCategoryId = sc.SubCategoryId
       ORDER BY u.DTStamp DESC
     `);
 
