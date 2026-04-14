@@ -8,14 +8,7 @@ export default function Page() {
         table="MasterCategory"
         title="Company Categories"
         description="Main categories for company users"
-        extraSelectCol={{
-          key: 'CategoryType',
-          label: 'Type',
-          options: [
-            { label: 'Individual', value: 'Individual' },
-            { label: 'Company', value: 'Company' },
-          ],
-        }}
+        categoryType="Company"
       />
     </div>
   );

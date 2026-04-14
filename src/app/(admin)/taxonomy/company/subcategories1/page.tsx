@@ -6,11 +6,11 @@ export default function Page() {
     <div className="p-4 md:p-6">
       <TaxonomyTable
         table="MasterSubCategory1"
-        title="Company SubCategories L2"
+        title="Company Sub Categories 2"
         description="Second-level sub-categories for companies"
         parentCol="SubCategoryId"
         parentTable="MasterSubCategory"
-        parentLabel="SubCategories"
+        parentLabel="Parent SubCategory"
       />
     </div>
   );

@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const table = searchParams.get('table') || '';
     const parentId = searchParams.get('parentId');
+    const categoryType = searchParams.get('categoryType'); // Individual or Company
 
     const config = ALLOWED_TABLES[table];
     if (!config) {
@@ -33,15 +34,33 @@ export async function GET(request: NextRequest) {
     }
 
     const db = await getDb();
-    let query = `SELECT * FROM ${table} WHERE StatusId = 1`;
     const req = db.request();
 
+    // Build query with optional JOINs to resolve parent names
+    let selectCols = `t.*`;
+    let fromClause = `${table} t`;
+    let whereClauses = ['t.StatusId = 1'];
+
+    if (config.parentCol && config.parentTable) {
+      const parentConfig = ALLOWED_TABLES[config.parentTable];
+      if (parentConfig) {
+        selectCols += `, p.${parentConfig.nameCol} as parentName`;
+        fromClause += ` LEFT JOIN ${config.parentTable} p ON t.${config.parentCol} = p.${parentConfig.idCol}`;
+      }
+    }
+
     if (parentId && config.parentCol) {
-      query += ` AND ${config.parentCol} = @parentId`;
+      whereClauses.push(`t.${config.parentCol} = @parentId`);
       req.input('parentId', sql.Int, parseInt(parentId, 10));
     }
 
-    query += ' ORDER BY SequenceNumber ASC, ' + config.nameCol + ' ASC';
+    // Filter by CategoryType for MasterCategory
+    if (categoryType && table === 'MasterCategory') {
+      whereClauses.push(`t.CategoryType = @categoryType`);
+      req.input('categoryType', sql.NVarChar, categoryType);
+    }
+
+    const query = `SELECT ${selectCols} FROM ${fromClause} WHERE ${whereClauses.join(' AND ')} ORDER BY t.SequenceNumber ASC, t.${config.nameCol} ASC`;
 
     const result = await req.query(query);
     return NextResponse.json({

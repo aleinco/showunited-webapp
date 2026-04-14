@@ -8,14 +8,7 @@ export default function Page() {
         table="MasterCategory"
         title="Individual Categories"
         description="Main professional categories for individual users"
-        extraSelectCol={{
-          key: 'CategoryType',
-          label: 'Type',
-          options: [
-            { label: 'Individual', value: 'Individual' },
-            { label: 'Company', value: 'Company' },
-          ],
-        }}
+        categoryType="Individual"
         extraBoolCols={[
           { key: 'IsBodyMeasurementRequired', label: 'Body Meas.' },
           { key: 'IsAuditionRequired', label: 'Audition' },

@@ -20,6 +20,8 @@ interface TaxonomyTableProps {
   parentCol?: string;
   parentTable?: string;
   parentLabel?: string;
+  /** Filter MasterCategory by CategoryType */
+  categoryType?: 'Individual' | 'Company';
   /** Extra boolean columns for MasterCategory */
   extraBoolCols?: { key: string; label: string }[];
   /** Extra select column (e.g. CategoryType) */
@@ -30,11 +32,11 @@ interface TaxItem {
   [key: string]: any;
 }
 
-async function fetchTaxonomy(table: string, parentId?: number) {
-  const url = parentId
-    ? `/api/admin/taxonomy?table=${table}&parentId=${parentId}`
-    : `/api/admin/taxonomy?table=${table}`;
-  const res = await fetch(url);
+async function fetchTaxonomy(table: string, parentId?: number, categoryType?: string) {
+  const params = new URLSearchParams({ table });
+  if (parentId) params.set('parentId', String(parentId));
+  if (categoryType) params.set('categoryType', categoryType);
+  const res = await fetch(`/api/admin/taxonomy?${params}`);
   return res.json();
 }
 
@@ -54,6 +56,7 @@ export default function TaxonomyTable({
   parentCol,
   parentTable,
   parentLabel,
+  categoryType,
   extraBoolCols,
   extraSelectCol,
 }: TaxonomyTableProps) {
@@ -82,11 +85,13 @@ export default function TaxonomyTable({
   })) || [];
 
   // Fetch items
-  const queryKey = ['taxonomy', table, selectedParent];
+  const queryKey = ['taxonomy', table, selectedParent, categoryType];
   const { data, isLoading } = useQuery({
     queryKey,
-    queryFn: () => fetchTaxonomy(table, selectedParent),
+    queryFn: () => fetchTaxonomy(table, selectedParent, categoryType),
   });
+
+  const hasParentName = items.length > 0 && items[0].parentName !== undefined;
 
   const items: TaxItem[] = data?.items || [];
   const config = data?.config || {};
@@ -207,6 +212,9 @@ export default function TaxonomyTable({
           <thead>
             <tr className="border-b border-muted bg-gray-100/40">
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">ID</th>
+              {hasParentName && (
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">{parentLabel || 'Parent'}</th>
+              )}
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Name</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Order</th>
               {extraSelectCol && (
@@ -274,6 +282,9 @@ export default function TaxonomyTable({
                 return (
                   <tr key={itemId} className="hover:bg-gray-50/50">
                     <td className="px-4 py-2.5 text-sm text-gray-500">{itemId}</td>
+                    {hasParentName && (
+                      <td className="px-4 py-2.5 text-sm text-gray-600">{item.parentName || '---'}</td>
+                    )}
                     <td className="px-4 py-2.5 text-sm font-medium text-gray-900">
                       {isEditing ? (
                         <Input size="sm" value={editName} onChange={(e) => setEditName(e.target.value)}

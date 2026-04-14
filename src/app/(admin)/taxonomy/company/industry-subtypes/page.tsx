@@ -10,7 +10,7 @@ export default function Page() {
         description="Industry sub-classifications"
         parentCol="IndustryTypeId"
         parentTable="MasterIndustryType"
-        parentLabel="Industry Types"
+        parentLabel="Industry Type"
       />
     </div>
   );
