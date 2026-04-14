@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
+const IMAGE_BASE = 'https://api.showunited.com/IndividualUserImage/';
+
 // Cache users for 2 minutes
 let cachedUsers: any[] | null = null;
 let cacheTime = 0;
@@ -60,7 +62,7 @@ export async function GET() {
       gender: r.Gender || '',
       status: r.status,
       statusId: r.StatusId,
-      photo: r.photo || '',
+      photo: r.photo ? `${IMAGE_BASE}${r.photo}` : '',
       birthDate: r.birthDate || '',
       createdDate: r.createdDate || '',
       lastLogin: r.lastLogin || '',

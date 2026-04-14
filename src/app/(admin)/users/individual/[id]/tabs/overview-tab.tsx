@@ -72,12 +72,12 @@ export default function OverviewTab({ user }: { user: any }) {
         <InfoCard
           icon={<PiTagDuotone className="h-5 w-5" />}
           label="Category"
-          value={`Cat ${user.CategoryId || '---'} / Sub ${user.SubCategoryId || '---'}`}
+          value={[user.category || user.CategoryId, user.subCategory || user.SubCategoryId].filter(Boolean).join(' / ') || '---'}
         />
         <InfoCard
           icon={<PiCreditCardDuotone className="h-5 w-5" />}
           label="Subscription Plan"
-          value={`Plan #${user.SubscriptionPlanId || '---'}`}
+          value={user.subscriptionPlanName || (user.SubscriptionPlanId ? `Plan #${user.SubscriptionPlanId}` : '---')}
         />
         <InfoCard
           icon={<PiClockDuotone className="h-5 w-5" />}

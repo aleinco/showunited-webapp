@@ -60,7 +60,7 @@ export default function IndividualUsersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['all-individual-users'],
     queryFn: async () => {
       const res = await fetch('/api/admin/users-list');
@@ -68,6 +68,25 @@ export default function IndividualUsersPage() {
     },
     staleTime: 120_000,
   });
+
+  const handleDeleteUser = async (userId: number) => {
+    try {
+      const res = await fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userId, type: 'individual' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('User deleted successfully');
+        refetch();
+      } else {
+        toast.error(data.error || 'Failed to delete user');
+      }
+    } catch {
+      toast.error('Error deleting user');
+    }
+  };
 
   const allUsers = useMemo<UserRecord[]>(() => data?.users || [], [data]);
 
@@ -195,7 +214,11 @@ export default function IndividualUsersPage() {
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => toast.error('PDF export coming soon')}>
               <PiFilePdfDuotone className="h-4 w-4" /> PDF
             </Button>
-            <Button size="sm" color="danger" variant="outline" className="gap-1.5 ms-2" onClick={() => toast.error('Bulk delete not yet connected')}>
+            <Button size="sm" color="danger" variant="outline" className="gap-1.5 ms-2" onClick={async () => {
+              if (!confirm(`Delete ${selectedIds.size} users?`)) return;
+              for (const uid of selectedIds) { await handleDeleteUser(uid); }
+              setSelectedIds(new Set());
+            }}>
               <PiTrashDuotone className="h-4 w-4" /> Delete
             </Button>
           </div>
@@ -270,7 +293,7 @@ export default function IndividualUsersPage() {
                           <ActionIcon size="sm" variant="outline" aria-label="View user" className="text-gray-500 hover:text-gray-700" onClick={() => router.push(`/users/individual/${row.id}`)}>
                             <PiEyeDuotone className="h-4 w-4" />
                           </ActionIcon>
-                          <DeletePopover title="Delete User" description="Are you sure?" onDelete={() => toast.success(`Delete user ${row.id} — not yet connected`)} />
+                          <DeletePopover title="Delete User" description="Are you sure? This will deactivate the user." onDelete={() => handleDeleteUser(row.id)} />
                         </div>
                       </td>
                     </tr>

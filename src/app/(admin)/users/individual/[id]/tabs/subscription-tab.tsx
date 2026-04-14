@@ -15,7 +15,7 @@ export default function SubscriptionTab({ user }: { user: any }) {
         title="Current Plan"
         description="Active subscription details."
       >
-        <Input label="Plan ID" value={String(user.SubscriptionPlanId || '---')} readOnly className="bg-gray-50/50" />
+        <Input label="Plan" value={user.subscriptionPlanName || (user.SubscriptionPlanId ? `Plan #${user.SubscriptionPlanId}` : '---')} readOnly className="bg-gray-50/50" />
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Status</label>
           <Badge
