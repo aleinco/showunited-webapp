@@ -1,14 +1,14 @@
 'use client';
-
-import AdminTable from '@/components/admin/admin-table';
-import { ADMIN_ENDPOINTS } from '@/api/types';
-
-const config = ADMIN_ENDPOINTS['individual-hair-colors'];
+import TaxonomyTable from '@/components/taxonomy-table';
 
 export default function Page() {
   return (
     <div className="p-4 md:p-6">
-      <AdminTable config={config} />
+      <TaxonomyTable
+        table="MasterHairColor"
+        title="Hair Colors"
+        description="Hair color options for individual profiles"
+      />
     </div>
   );
 }

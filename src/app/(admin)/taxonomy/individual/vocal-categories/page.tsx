@@ -1,14 +1,14 @@
 'use client';
-
-import AdminTable from '@/components/admin/admin-table';
-import { ADMIN_ENDPOINTS } from '@/api/types';
-
-const config = ADMIN_ENDPOINTS['individual-vocal-categories'];
+import TaxonomyTable from '@/components/taxonomy-table';
 
 export default function Page() {
   return (
     <div className="p-4 md:p-6">
-      <AdminTable config={config} />
+      <TaxonomyTable
+        table="MasterVocalCategory"
+        title="Vocal Categories"
+        description="Vocal range and type classifications"
+      />
     </div>
   );
 }

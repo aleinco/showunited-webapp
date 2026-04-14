@@ -1,14 +1,17 @@
 'use client';
-
-import AdminTable from '@/components/admin/admin-table';
-import { ADMIN_ENDPOINTS } from '@/api/types';
-
-const config = ADMIN_ENDPOINTS['company-subcategories1'];
+import TaxonomyTable from '@/components/taxonomy-table';
 
 export default function Page() {
   return (
     <div className="p-4 md:p-6">
-      <AdminTable config={config} />
+      <TaxonomyTable
+        table="MasterSubCategory1"
+        title="Company SubCategories L2"
+        description="Second-level sub-categories for companies"
+        parentCol="SubCategoryId"
+        parentTable="MasterSubCategory"
+        parentLabel="SubCategories"
+      />
     </div>
   );
 }
