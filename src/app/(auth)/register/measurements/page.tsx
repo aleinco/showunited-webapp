@@ -56,165 +56,55 @@ const HAIR_COLOURS: { id: number; name: string }[] = [
   { id: 14, name: 'Cherry Cola EDIT' },
 ];
 
-/* ── Body Silhouette SVG ── */
+/* ── Body Silhouette SVG (iOS style — coral filled, zone highlight) ── */
 function BodySilhouette({ activeZone }: { activeZone: BodyZone }) {
-  const accent = '#F26B50';
-  const highlight = 'rgba(242, 107, 80, 0.25)';
-  const zoneActive = (zone: BodyZone) =>
-    activeZone === zone || activeZone === 'full';
+  const accent = '#E8725C';
+  const active = '#C9412B';
+  const hair = '#F2B4A8';
+  const dim = 0.85;
+  const dimmed = 0.5;
+  const hasActive = activeZone !== null;
+
+  const zoneIs = (zone: BodyZone) => activeZone === zone || activeZone === 'full';
+  const fill = (zone: BodyZone) => zoneIs(zone) ? active : accent;
+  const op = (zone: BodyZone) => hasActive ? (zoneIs(zone) ? 1 : dimmed) : dim;
+  const t = 'transition: fill 0.3s, opacity 0.3s';
 
   return (
-    <svg
-      viewBox="0 0 200 500"
-      className="h-full w-full"
-      style={{ maxHeight: '460px' }}
-    >
+    <svg viewBox="0 0 200 500" className="h-full w-full" style={{ maxHeight: '460px' }}>
+      {/* Hair */}
+      <ellipse cx="100" cy="32" rx="30" ry="20" fill={hair} opacity={op('head')} />
       {/* Head */}
-      <ellipse cx="100" cy="52" rx="28" ry="34" fill={accent} opacity="0.9" />
-      {(activeZone === 'head' || activeZone === 'full') && (
-        <ellipse cx="100" cy="52" rx="28" ry="34" fill={highlight} />
-      )}
-
+      <ellipse cx="100" cy="52" rx="28" ry="34" fill={fill('head')} opacity={op('head')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
       {/* Neck */}
-      <rect x="90" y="84" width="20" height="18" fill={accent} opacity="0.9" />
-
+      <rect x="90" y="84" width="20" height="18" rx="4" fill={accent} opacity={hasActive ? dimmed : dim} />
       {/* Torso / Bust */}
-      <path
-        d="M60 102 Q60 96 72 96 L128 96 Q140 96 140 102 L144 180 Q144 190 130 192 L70 192 Q56 190 56 180 Z"
-        fill={accent}
-        opacity="0.9"
-      />
-      {zoneActive('bust') && (
-        <path
-          d="M60 102 Q60 96 72 96 L128 96 Q140 96 140 102 L144 180 Q144 190 130 192 L70 192 Q56 190 56 180 Z"
-          fill={highlight}
-        />
-      )}
-
-      {/* Arms */}
-      <path
-        d="M56 102 Q44 104 38 120 L24 190 Q22 198 28 200 L34 198 Q38 196 40 188 L56 130"
-        fill={accent}
-        opacity="0.85"
-      />
-      <path
-        d="M144 102 Q156 104 162 120 L176 190 Q178 198 172 200 L166 198 Q162 196 160 188 L144 130"
-        fill={accent}
-        opacity="0.85"
-      />
-
+      <path d="M60 102 Q55 96 72 96 L128 96 Q145 96 140 102 L144 180 Q144 192 130 194 L70 194 Q56 192 56 180 Z"
+        fill={fill('bust')} opacity={op('bust')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
       {/* Waist */}
-      <path
-        d="M70 192 L130 192 L126 230 L74 230 Z"
-        fill={accent}
-        opacity="0.9"
-      />
-      {zoneActive('waist') && (
-        <path d="M70 192 L130 192 L126 230 L74 230 Z" fill={highlight} />
-      )}
-
+      <path d="M70 194 L130 194 L126 232 L74 232 Z"
+        fill={fill('waist')} opacity={op('waist')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
       {/* Hip */}
-      <path
-        d="M74 230 L126 230 Q148 240 148 260 L148 280 L52 280 L52 260 Q52 240 74 230 Z"
-        fill={accent}
-        opacity="0.9"
-      />
-      {zoneActive('hip') && (
-        <path
-          d="M74 230 L126 230 Q148 240 148 260 L148 280 L52 280 L52 260 Q52 240 74 230 Z"
-          fill={highlight}
-        />
-      )}
-
-      {/* Left leg */}
-      <path
-        d="M52 280 L96 280 L92 420 L56 420 Z"
-        fill={accent}
-        opacity="0.9"
-      />
-      {/* Right leg */}
-      <path
-        d="M104 280 L148 280 L144 420 L108 420 Z"
-        fill={accent}
-        opacity="0.9"
-      />
-      {zoneActive('legs') && (
-        <>
-          <path d="M52 280 L96 280 L92 420 L56 420 Z" fill={highlight} />
-          <path
-            d="M104 280 L148 280 L144 420 L108 420 Z"
-            fill={highlight}
-          />
-        </>
-      )}
-
-      {/* Knee zone */}
-      {zoneActive('knee') && (
-        <>
-          <rect
-            x="56"
-            y="340"
-            width="36"
-            height="40"
-            rx="8"
-            fill={highlight}
-          />
-          <rect
-            x="108"
-            y="340"
-            width="36"
-            height="40"
-            rx="8"
-            fill={highlight}
-          />
-        </>
-      )}
-
-      {/* Ankle zone */}
-      {zoneActive('ankle') && (
-        <>
-          <rect
-            x="56"
-            y="395"
-            width="36"
-            height="30"
-            rx="8"
-            fill={highlight}
-          />
-          <rect
-            x="108"
-            y="395"
-            width="36"
-            height="30"
-            rx="8"
-            fill={highlight}
-          />
-        </>
-      )}
-
+      <path d="M74 232 L126 232 Q150 244 150 264 L148 284 L52 284 L50 264 Q50 244 74 232 Z"
+        fill={fill('hip')} opacity={op('hip')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
+      {/* Upper legs */}
+      <path d="M52 284 L96 284 L94 370 L58 370 Z" fill={fill('legs')} opacity={op('legs')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
+      <path d="M104 284 L148 284 L142 370 L106 370 Z" fill={fill('legs')} opacity={op('legs')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
+      {/* Knees */}
+      <rect x="58" y="370" width="36" height="30" rx="6" fill={fill('knee')} opacity={op('knee')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
+      <rect x="106" y="370" width="36" height="30" rx="6" fill={fill('knee')} opacity={op('knee')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
+      {/* Lower legs */}
+      <path d="M60 400 L92 400 L90 430 L62 430 Z" fill={fill('ankle')} opacity={op('ankle')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
+      <path d="M108 400 L140 400 L138 430 L110 430 Z" fill={fill('ankle')} opacity={op('ankle')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
       {/* Feet */}
-      <path
-        d="M56 420 L92 420 L96 436 Q96 442 88 442 L48 442 Q42 442 42 436 L44 424 Z"
-        fill={accent}
-        opacity="0.9"
-      />
-      <path
-        d="M108 420 L144 420 L156 424 L158 436 Q158 442 152 442 L112 442 Q104 442 104 436 L108 420 Z"
-        fill={accent}
-        opacity="0.9"
-      />
-      {zoneActive('foot') && (
-        <>
-          <path
-            d="M56 420 L92 420 L96 436 Q96 442 88 442 L48 442 Q42 442 42 436 L44 424 Z"
-            fill={highlight}
-          />
-          <path
-            d="M108 420 L144 420 L156 424 L158 436 Q158 442 152 442 L112 442 Q104 442 104 436 L108 420 Z"
-            fill={highlight}
-          />
-        </>
-      )}
+      <path d="M62 430 L90 430 L92 444 Q92 456 78 456 L44 456 Q38 456 38 448 L38 440 Z" fill={fill('foot')} opacity={op('foot')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
+      <path d="M110 430 L138 430 L156 440 L156 448 Q156 456 150 456 L122 456 Q108 456 108 444 Z" fill={fill('foot')} opacity={op('foot')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
+      {/* Left arm + hand */}
+      <path d="M60 102 L36 110 L20 190 Q16 210 14 238 Q12 248 20 248 L30 244 L42 196 L56 140 Z" fill={accent} opacity={hasActive ? dimmed : dim} />
+      <path d="M14 238 L8 258 Q6 268 14 268 L22 264 L20 248 Z" fill={accent} opacity={hasActive ? dimmed : dim} />
+      {/* Right arm + hand */}
+      <path d="M140 102 L164 110 L180 190 Q184 210 186 238 Q188 248 180 248 L170 244 L158 196 L144 140 Z" fill={accent} opacity={hasActive ? dimmed : dim} />
+      <path d="M186 238 L192 258 Q194 268 186 268 L178 264 L180 248 Z" fill={accent} opacity={hasActive ? dimmed : dim} />
     </svg>
   );
 }
