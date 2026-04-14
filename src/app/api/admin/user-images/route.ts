@@ -1,27 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const API_URL = 'https://api.showunited.com';
-
-async function getApiToken(): Promise<string> {
-  const res = await fetch(`${API_URL}/api/User/Login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ Email: 'ac@adesign.es', Password: 'Show1637$' }),
-  });
-  const data = await res.json();
-  return data?.responseData?.Token || '';
-}
-
-// Cache token for 1 hour
-let cachedToken = '';
-let tokenExpiry = 0;
-
-async function getToken(): Promise<string> {
-  if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
-  cachedToken = await getApiToken();
-  tokenExpiry = Date.now() + 3600_000;
-  return cachedToken;
-}
+import { getDb, sql } from '@/lib/db';
 
 /**
  * GET /api/admin/user-images?ids=67,91,88
@@ -30,38 +8,36 @@ async function getToken(): Promise<string> {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const ids = searchParams.get('ids')?.split(',').filter(Boolean) || [];
+    const ids = searchParams.get('ids')?.split(',').filter(Boolean).map(Number) || [];
 
     if (ids.length === 0) {
       return NextResponse.json({ images: {} });
     }
 
-    const token = await getToken();
-    if (!token) {
-      return NextResponse.json({ images: {} });
-    }
+    const db = await getDb();
 
-    const results = await Promise.allSettled(
-      ids.map(async (id) => {
-        const res = await fetch(`${API_URL}/api/User/GetUserDetailById`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ IndividualUserId: parseInt(id, 10) }),
-        });
-        const data = await res.json();
-        const images = data?.responseData?.IndividualUserImageList || [];
-        const firstImage = images[0]?.IndividualUserImage || '';
-        return { id, image: firstImage };
-      })
-    );
+    // Build parameterized query for multiple IDs
+    const req = db.request();
+    const placeholders = ids.map((id, i) => {
+      req.input(`id${i}`, sql.Int, id);
+      return `@id${i}`;
+    });
+
+    const result = await req.query(`
+      SELECT IndividualUserId, IndividualUserImage
+      FROM (
+        SELECT IndividualUserId, IndividualUserImage,
+               ROW_NUMBER() OVER (PARTITION BY IndividualUserId ORDER BY IndividualUserImageId DESC) as rn
+        FROM IndividualUserImage
+        WHERE IndividualUserId IN (${placeholders.join(',')}) AND StatusId = 1
+      ) sub
+      WHERE rn = 1
+    `);
 
     const images: Record<string, string> = {};
-    for (const r of results) {
-      if (r.status === 'fulfilled' && r.value.image) {
-        images[r.value.id] = r.value.image;
+    for (const row of result.recordset) {
+      if (row.IndividualUserImage) {
+        images[String(row.IndividualUserId)] = row.IndividualUserImage;
       }
     }
 

@@ -1,50 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const API_URL = 'https://api.showunited.com';
-
-let cachedToken = '';
-let tokenExpiry = 0;
-
-async function getToken(): Promise<string> {
-  if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
-  const res = await fetch(`${API_URL}/api/User/Login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ Email: 'ac@adesign.es', Password: 'Show1637$' }),
-  });
-  const data = await res.json();
-  cachedToken = data?.responseData?.Token || '';
-  tokenExpiry = Date.now() + 3600_000;
-  return cachedToken;
-}
+import { getDb } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
-    const id = new URL(request.url).searchParams.get('id');
-    if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const type = searchParams.get('type') || 'individual';
 
-    const token = await getToken();
-    if (!token) return NextResponse.json({ error: 'Auth failed' }, { status: 500 });
-
-    const type = new URL(request.url).searchParams.get('type');
-    const bodyParam = type === 'company'
-      ? { CompanyUserId: parseInt(id, 10) }
-      : { IndividualUserId: parseInt(id, 10) };
-
-    const res = await fetch(`${API_URL}/api/User/GetUserDetailById`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(bodyParam),
-    });
-
-    const data = await res.json();
-    if (data?.responseCode === '200') {
-      return NextResponse.json(data.responseData);
+    if (!id) {
+      return NextResponse.json({ error: 'Missing id parameter' }, { status: 400 });
     }
-    return NextResponse.json({ error: data?.responseMessage || 'Not found' }, { status: 404 });
+
+    const db = await getDb();
+
+    if (type === 'company') {
+      const result = await db.request()
+        .input('id', parseInt(id, 10))
+        .query('SELECT * FROM MasterCompanyUser WHERE CompanyUserId = @id');
+      if (!result.recordset[0]) {
+        return NextResponse.json({ error: 'Company user not found' }, { status: 404 });
+      }
+      return NextResponse.json(result.recordset[0]);
+    }
+
+    // Individual user with category names
+    const result = await db.request()
+      .input('id', parseInt(id, 10))
+      .query(`
+        SELECT
+          u.*,
+          c.CategoryName as category,
+          sc.SubCategoryName as subCategory
+        FROM MasterIndividualUser u
+        LEFT JOIN IndividualCategory c ON u.CategoryId = c.IndividualCategoryId
+        LEFT JOIN IndividualSubCategory sc ON u.SubCategoryId = sc.IndividualSubCategoryId
+        WHERE u.IndividualUserId = @id
+      `);
+
+    if (!result.recordset[0]) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Get user images
+    const images = await db.request()
+      .input('id', parseInt(id, 10))
+      .query(`
+        SELECT IndividualUserImage, IndividualUserImageThumbnails
+        FROM IndividualUserImage
+        WHERE IndividualUserId = @id AND StatusId = 1
+        ORDER BY IndividualUserImageId DESC
+      `);
+
+    const user = result.recordset[0];
+    return NextResponse.json({
+      ...user,
+      IndividualUserImageList: images.recordset,
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
