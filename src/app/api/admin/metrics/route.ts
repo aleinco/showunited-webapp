@@ -25,10 +25,10 @@ export async function GET() {
     ] = await Promise.all([
       db.request().query('SELECT COUNT(*) as c FROM MasterIndividualUser WHERE StatusId = 1'),
       db.request().query('SELECT COUNT(*) as c FROM MasterCompanyUser WHERE StatusId = 1'),
-      db.request().query('SELECT COUNT(*) as c FROM UserSubscriptionPlan WHERE StatusId = 1'),
+      db.request().query('SELECT COUNT(*) as c FROM UserSubscriptionPlan WHERE ISNULL(IsDelete, 0) = 0'),
       db.request().query('SELECT COUNT(*) as c FROM MasterSubscriptionPlan WHERE StatusId = 1'),
       db.request().query('SELECT COUNT(*) as c FROM MasterFAQ WHERE StatusId = 1'),
-      db.request().query('SELECT COUNT(*) as c FROM UserDispute WHERE StatusId = 1'),
+      db.request().query('SELECT COUNT(*) as c FROM UserDispute'),
       db.request().query('SELECT COUNT(*) as c FROM MasterSkill WHERE StatusId = 1'),
       db.request().query('SELECT COUNT(*) as c FROM MasterCategory WHERE StatusId = 1'),
     ]);
