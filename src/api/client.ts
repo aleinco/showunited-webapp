@@ -68,34 +68,8 @@ export interface DashboardMetrics {
 }
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
-  const endpoints = [
-    { key: 'totalIndividualUsers', controller: 'IndividualUser', action: 'GetIndividualUserData' },
-    { key: 'totalCompanyUsers', controller: 'CompanyUser', action: 'GetCompanyUserData' },
-    { key: 'totalSubscriptions', controller: 'UserSubscription', action: 'GetUserSubscriptionData' },
-    { key: 'totalPlans', controller: 'SubscriptionPlan', action: 'GetSubscriptionPlanData' },
-    { key: 'totalFaqs', controller: 'FAQ', action: 'GetFAQData' },
-    { key: 'totalDisputes', controller: 'UserDispute', action: 'GetUserDisputeData' },
-    { key: 'totalSkills', controller: 'Skill', action: 'GetSkillData' },
-    { key: 'totalCategories', controller: 'IndividualCategory', action: 'GetIndividualCategoryData' },
-  ];
-
-  const results = await Promise.allSettled(
-    endpoints.map(async (ep) => {
-      const res = await api.post('/proxy', {
-        endpoint: `${ep.controller}/${ep.action}`,
-        data: { PageNumber: 1 },
-      });
-      return { key: ep.key, count: res.data?.totalCount || 0 };
-    })
-  );
-
-  const metrics: any = {};
-  for (const r of results) {
-    if (r.status === 'fulfilled') {
-      metrics[r.value.key] = r.value.count;
-    }
-  }
-  return metrics as DashboardMetrics;
+  const res = await api.get('/metrics');
+  return res.data as DashboardMetrics;
 }
 
 export default api;
