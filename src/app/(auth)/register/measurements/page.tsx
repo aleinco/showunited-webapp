@@ -56,56 +56,32 @@ const HAIR_COLOURS: { id: number; name: string }[] = [
   { id: 14, name: 'Cherry Cola EDIT' },
 ];
 
-/* ── Body Silhouette SVG (iOS style — coral filled, zone highlight) ── */
-function BodySilhouette({ activeZone }: { activeZone: BodyZone }) {
-  const accent = '#E8725C';
-  const active = '#C9412B';
-  const hair = '#F2B4A8';
-  const dim = 0.85;
-  const dimmed = 0.5;
-  const hasActive = activeZone !== null;
+/* ── Body Silhouette — uses original SVGs from iOS/Android app ── */
+const ZONE_SVG_MAP: Record<string, string> = {
+  full: '/body-silhouette/ic_unit_male.svg',
+  head: '/body-silhouette/ic_hair_color_male.svg',
+  bust: '/body-silhouette/ic_high_bust_male.svg',
+  waist: '/body-silhouette/ic_waist_male.svg',
+  hip: '/body-silhouette/ic_high_hip_male.svg',
+  legs: '/body-silhouette/ic_ankle_to_hip_male.svg',
+  knee: '/body-silhouette/ic_knee_girth_male.svg',
+  ankle: '/body-silhouette/ic_ankle_girth_male.svg',
+  foot: '/body-silhouette/ic_shoe_size_male.svg',
+};
 
-  const zoneIs = (zone: BodyZone) => activeZone === zone || activeZone === 'full';
-  const fill = (zone: BodyZone) => zoneIs(zone) ? active : accent;
-  const op = (zone: BodyZone) => hasActive ? (zoneIs(zone) ? 1 : dimmed) : dim;
-  const t = 'transition: fill 0.3s, opacity 0.3s';
+function BodySilhouette({ activeZone }: { activeZone: BodyZone }) {
+  const src = ZONE_SVG_MAP[activeZone || 'full'] || ZONE_SVG_MAP.full;
 
   return (
-    <svg viewBox="0 0 200 500" className="h-full w-full" style={{ maxHeight: '460px' }}>
-      {/* Hair */}
-      <ellipse cx="100" cy="32" rx="30" ry="20" fill={hair} opacity={op('head')} />
-      {/* Head */}
-      <ellipse cx="100" cy="52" rx="28" ry="34" fill={fill('head')} opacity={op('head')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
-      {/* Neck */}
-      <rect x="90" y="84" width="20" height="18" rx="4" fill={accent} opacity={hasActive ? dimmed : dim} />
-      {/* Torso / Bust */}
-      <path d="M60 102 Q55 96 72 96 L128 96 Q145 96 140 102 L144 180 Q144 192 130 194 L70 194 Q56 192 56 180 Z"
-        fill={fill('bust')} opacity={op('bust')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
-      {/* Waist */}
-      <path d="M70 194 L130 194 L126 232 L74 232 Z"
-        fill={fill('waist')} opacity={op('waist')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
-      {/* Hip */}
-      <path d="M74 232 L126 232 Q150 244 150 264 L148 284 L52 284 L50 264 Q50 244 74 232 Z"
-        fill={fill('hip')} opacity={op('hip')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
-      {/* Upper legs */}
-      <path d="M52 284 L96 284 L94 370 L58 370 Z" fill={fill('legs')} opacity={op('legs')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
-      <path d="M104 284 L148 284 L142 370 L106 370 Z" fill={fill('legs')} opacity={op('legs')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
-      {/* Knees */}
-      <rect x="58" y="370" width="36" height="30" rx="6" fill={fill('knee')} opacity={op('knee')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
-      <rect x="106" y="370" width="36" height="30" rx="6" fill={fill('knee')} opacity={op('knee')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
-      {/* Lower legs */}
-      <path d="M60 400 L92 400 L90 430 L62 430 Z" fill={fill('ankle')} opacity={op('ankle')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
-      <path d="M108 400 L140 400 L138 430 L110 430 Z" fill={fill('ankle')} opacity={op('ankle')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
-      {/* Feet */}
-      <path d="M62 430 L90 430 L92 444 Q92 456 78 456 L44 456 Q38 456 38 448 L38 440 Z" fill={fill('foot')} opacity={op('foot')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
-      <path d="M110 430 L138 430 L156 440 L156 448 Q156 456 150 456 L122 456 Q108 456 108 444 Z" fill={fill('foot')} opacity={op('foot')} style={{ transition: 'fill 0.3s, opacity 0.3s' }} />
-      {/* Left arm + hand */}
-      <path d="M60 102 L36 110 L20 190 Q16 210 14 238 Q12 248 20 248 L30 244 L42 196 L56 140 Z" fill={accent} opacity={hasActive ? dimmed : dim} />
-      <path d="M14 238 L8 258 Q6 268 14 268 L22 264 L20 248 Z" fill={accent} opacity={hasActive ? dimmed : dim} />
-      {/* Right arm + hand */}
-      <path d="M140 102 L164 110 L180 190 Q184 210 186 238 Q188 248 180 248 L170 244 L158 196 L144 140 Z" fill={accent} opacity={hasActive ? dimmed : dim} />
-      <path d="M186 238 L192 258 Q194 268 186 268 L178 264 L180 248 Z" fill={accent} opacity={hasActive ? dimmed : dim} />
-    </svg>
+    <div className="relative h-full w-full" style={{ maxHeight: '460px' }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt="Body silhouette"
+        className="h-full w-full object-contain transition-opacity duration-300"
+        style={{ minHeight: '300px' }}
+      />
+    </div>
   );
 }
 
