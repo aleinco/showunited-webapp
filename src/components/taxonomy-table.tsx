@@ -91,10 +91,10 @@ export default function TaxonomyTable({
     queryFn: () => fetchTaxonomy(table, selectedParent, categoryType),
   });
 
-  const hasParentName = items.length > 0 && items[0].parentName !== undefined;
-
   const items: TaxItem[] = data?.items || [];
   const config = data?.config || {};
+
+  const hasParentName = items.length > 0 && items[0].parentName !== undefined;
 
   // Filter by search
   const filtered = search
