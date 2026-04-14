@@ -60,10 +60,12 @@ export default function IndividualUsersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
+  const [bustCache, setBustCache] = useState(0);
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['all-individual-users'],
+    queryKey: ['all-individual-users', bustCache],
     queryFn: async () => {
-      const res = await fetch('/api/admin/users-list');
+      const url = bustCache ? '/api/admin/users-list?nocache=1' : '/api/admin/users-list';
+      const res = await fetch(url);
       return res.json();
     },
     staleTime: 120_000,
@@ -76,15 +78,16 @@ export default function IndividualUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: userId, type: 'individual' }),
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('User deleted successfully');
-        refetch();
+      const result = await res.json();
+      if (result.success) {
+        toast.success('User deactivated successfully');
+        setBustCache(Date.now());
+        await refetch();
       } else {
-        toast.error(data.error || 'Failed to delete user');
+        toast.error(result.error || 'Failed to delete user');
       }
-    } catch {
-      toast.error('Error deleting user');
+    } catch (err: any) {
+      toast.error('Error deleting user: ' + (err.message || ''));
     }
   };
 

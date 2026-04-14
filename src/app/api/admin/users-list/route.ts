@@ -7,9 +7,12 @@ const IMAGE_BASE = 'https://api.showunited.com/IndividualUserImage/';
 let cachedUsers: any[] | null = null;
 let cacheTime = 0;
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    if (cachedUsers && Date.now() - cacheTime < 120_000) {
+    const url = new URL(request.url);
+    const noCache = url.searchParams.has('nocache');
+
+    if (!noCache && cachedUsers && Date.now() - cacheTime < 120_000) {
       return NextResponse.json({ users: cachedUsers, total: cachedUsers.length });
     }
 
@@ -44,6 +47,7 @@ export async function GET() {
       FROM MasterIndividualUser u
       LEFT JOIN MasterCategory c ON u.CategoryId = c.CategoryId
       LEFT JOIN MasterSubCategory sc ON u.SubCategoryId = sc.SubCategoryId
+      WHERE u.StatusId = 1
       ORDER BY u.DTStamp DESC
     `);
 
