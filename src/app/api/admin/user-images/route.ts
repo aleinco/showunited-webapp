@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       SELECT IndividualUserId, IndividualUserImage
       FROM (
         SELECT IndividualUserId, IndividualUserImage,
-               ROW_NUMBER() OVER (PARTITION BY IndividualUserId ORDER BY IndividualUserImageId DESC) as rn
+               ROW_NUMBER() OVER (PARTITION BY IndividualUserId ORDER BY IndividualUserImageId ASC) as rn
         FROM IndividualUserImage
         WHERE IndividualUserId IN (${placeholders.join(',')}) AND StatusId = 1
       ) sub

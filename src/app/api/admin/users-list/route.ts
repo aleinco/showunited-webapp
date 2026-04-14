@@ -43,7 +43,7 @@ export async function GET(request: Request) {
         sc.SubCategoryName as subCategory,
         (SELECT TOP 1 IndividualUserImage FROM IndividualUserImage
          WHERE IndividualUserId = u.IndividualUserId AND StatusId = 1
-         ORDER BY IndividualUserImageId DESC) as photo
+         ORDER BY IndividualUserImageId ASC) as photo
       FROM MasterIndividualUser u
       LEFT JOIN MasterCategory c ON u.CategoryId = c.CategoryId
       LEFT JOIN MasterSubCategory sc ON u.SubCategoryId = sc.SubCategoryId

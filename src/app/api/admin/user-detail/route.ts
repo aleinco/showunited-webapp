@@ -53,10 +53,10 @@ export async function GET(request: NextRequest) {
     const images = await db.request()
       .input('id', parseInt(id, 10))
       .query(`
-        SELECT IndividualUserImage, IndividualUserImageThumbnails
+        SELECT IndividualUserImageId, IndividualUserImage, IndividualUserImageThumbnails, DTStamp
         FROM IndividualUserImage
         WHERE IndividualUserId = @id AND StatusId = 1
-        ORDER BY IndividualUserImageId DESC
+        ORDER BY IndividualUserImageId ASC
       `);
 
     const user = result.recordset[0];
