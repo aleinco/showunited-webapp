@@ -57,22 +57,24 @@ export default function MessagesPage() {
     }
   }
 
-  function getContactIdentity(conv: Conversation): string {
+  function getContactIdentity(conv: Conversation, currentIdentity?: string): string {
     const uniqueName = conv.uniqueName || '';
     const match = uniqueName.match(
       /^chat_(Individual_\d+|Company_\d+)_(Individual_\d+|Company_\d+)$/
     );
     if (match) {
       const [, a, b] = match;
-      return a === identity ? b : a;
+      const me = currentIdentity || identity;
+      return a === me ? b : a;
     }
     return '';
   }
 
   async function buildConversationData(
-    conv: Conversation
+    conv: Conversation,
+    currentIdentity?: string
   ): Promise<ConversationData> {
-    const contactId = getContactIdentity(conv);
+    const contactId = getContactIdentity(conv, currentIdentity);
     const userInfo = userCache.get(contactId) || {
       name: contactId,
       photo: '',
@@ -140,7 +142,7 @@ export default function MessagesPage() {
 
         await resolveUsers(contactIds);
 
-        const convDataPromises = convs.map((c) => buildConversationData(c));
+        const convDataPromises = convs.map((c) => buildConversationData(c, userIdentity));
         const convData = await Promise.all(convDataPromises);
 
         convData.sort((a, b) => {
@@ -178,9 +180,9 @@ export default function MessagesPage() {
         });
 
         client.on('conversationJoined', async (conv) => {
-          const contactId = getContactIdentity(conv);
+          const contactId = getContactIdentity(conv, userIdentity);
           await resolveUsers([contactId]);
-          const data = await buildConversationData(conv);
+          const data = await buildConversationData(conv, userIdentity);
           setConversations((prev) => [data, ...prev]);
         });
       } catch (err) {
