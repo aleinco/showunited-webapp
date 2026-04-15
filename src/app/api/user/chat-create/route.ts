@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import twilio from 'twilio';
+import { getDb } from '@/lib/db';
 
 const {
   TWILIO_ACCOUNT_SID = '',
@@ -9,13 +10,15 @@ const {
 
 function extractUserFromToken(jwtToken: string): {
   identity: string;
+  userId: number;
+  userType: string;
 } | null {
   try {
     const payload = JSON.parse(atob(jwtToken.split('.')[1]));
     const individualId = payload.IndividualUserId;
     const companyId = payload.CompanyUserId;
-    if (individualId) return { identity: `Individual_${individualId}` };
-    if (companyId) return { identity: `Company_${companyId}` };
+    if (individualId) return { identity: `Individual_${individualId}`, userId: Number(individualId), userType: 'Individual' };
+    if (companyId) return { identity: `Company_${companyId}`, userId: Number(companyId), userType: 'Company' };
     return null;
   } catch {
     return null;
@@ -75,6 +78,29 @@ export async function POST(request: Request) {
       .conversations(conversation.sid)
       .participants
       .create({ identity: targetIdentity });
+
+    // Persist to ChatConversation so the .NET webhook doesn't fail on first message
+    try {
+      const db = await getDb();
+      const [userAId, userAType, userBId, userBType] = user.identity < targetIdentity
+        ? [user.userId, user.userType, targetUserId, targetUserType]
+        : [targetUserId, targetUserType, user.userId, user.userType];
+
+      await db.request()
+        .input('conversationSid', conversation.sid)
+        .input('userAId', String(userAId))
+        .input('userAType', typeof userAType === 'string' ? userAType : String(userAType))
+        .input('userBId', String(userBId))
+        .input('userBType', typeof userBType === 'string' ? userBType : String(userBType))
+        .query(`
+          IF NOT EXISTS (SELECT 1 FROM ChatConversation WHERE ConversationSid = @conversationSid)
+          INSERT INTO ChatConversation (ConversationSid, UserAId, UserAType, UserBId, UserBType, IsActive, CreatedOn)
+          VALUES (@conversationSid, @userAId, @userAType, @userBId, @userBType, 1, GETUTCDATE())
+        `);
+    } catch (dbErr) {
+      console.error('Failed to persist ChatConversation:', dbErr);
+      // Non-fatal: Twilio conversation was created, DB persist is best-effort
+    }
 
     return NextResponse.json({
       conversationSid: conversation.sid,

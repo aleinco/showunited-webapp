@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Conversation, Message } from '@twilio/conversations';
+import axios from 'axios';
 import ChatHeader from './chat-header';
 import MessageList, { ChatMessage } from './message-list';
 import MessageInput from './message-input';
@@ -15,6 +16,7 @@ interface ChatViewProps {
   contactPhoto: string;
   onBack: () => void;
   loading?: boolean;
+  token?: string;
 }
 
 export default function ChatView({
@@ -24,6 +26,7 @@ export default function ChatView({
   contactPhoto,
   onBack,
   loading = false,
+  token = '',
 }: ChatViewProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -117,7 +120,22 @@ export default function ChatView({
   async function handleSend(text: string) {
     if (!conversation) return;
     try {
-      await conversation.sendMessage(text);
+      const msgIndex = await conversation.sendMessage(text);
+      // Persist to SQL as fallback (in case .NET webhook misses it)
+      if (token && msgIndex !== undefined) {
+        try {
+          const msgs = await conversation.getMessages(1);
+          const lastMsg = msgs.items[msgs.items.length - 1];
+          if (lastMsg?.sid) {
+            axios.post('/api/user/chat-persist', {
+              token,
+              conversationSid: conversation.sid,
+              messageSid: lastMsg.sid,
+              messageBody: text,
+            }).catch(() => {}); // fire-and-forget
+          }
+        } catch { /* best effort */ }
+      }
     } catch (err) {
       console.error('Failed to send message:', err);
     }

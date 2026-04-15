@@ -267,6 +267,7 @@ export default function MessagesPage() {
             contactPhoto={contactPhoto}
             onBack={handleBack}
             loading={loadingChat}
+            token={token}
           />
         ) : (
           <AdminChatView
