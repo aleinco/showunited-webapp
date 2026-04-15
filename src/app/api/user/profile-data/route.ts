@@ -22,23 +22,27 @@ export async function POST(request: NextRequest) {
         .input('uid', sql.Int, Number(userId))
         .query(`
           SELECT
-            IndividualUserId,
-            FirstName,
-            LastName,
-            Email,
-            CountryCallingCode,
-            PhoneNumber,
-            Gender,
-            CountryId,
-            CityId,
-            BithDate,
-            IsInterestedInInternationalTouring,
-            CategoryId,
-            SubCategoryId,
-            SubCategory1Id,
-            VocalCategoryId
-          FROM MasterIndividualUser
-          WHERE IndividualUserId = @uid
+            u.IndividualUserId,
+            u.FirstName,
+            u.LastName,
+            u.Email,
+            u.CountryCallingCode,
+            u.PhoneNumber,
+            u.Gender,
+            u.CountryId,
+            u.CityId,
+            u.BithDate,
+            u.IsInterestedInInternationalTouring,
+            u.CategoryId,
+            u.SubCategoryId,
+            u.SubCategory1Id,
+            u.VocalCategoryId,
+            c.CategoryName,
+            sc.SubCategoryName
+          FROM MasterIndividualUser u
+          LEFT JOIN MasterCategory c ON c.CategoryId = u.CategoryId
+          LEFT JOIN MasterSubCategory sc ON sc.SubCategoryId = u.SubCategoryId
+          WHERE u.IndividualUserId = @uid
         `);
 
       if (!result.recordset.length) {
@@ -47,12 +51,25 @@ export async function POST(request: NextRequest) {
 
       const row = result.recordset[0];
 
+      // Calculate age from BithDate
+      let age: number | null = null;
+      if (row.BithDate) {
+        const birth = new Date(row.BithDate);
+        const today = new Date();
+        age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+      }
+
       // CountryId and CityId are nvarchar(500) — they store text directly, not numeric IDs
       return NextResponse.json({
         ok: true,
         data: {
           ...row,
           BithDate: row.BithDate ? new Date(row.BithDate).toISOString().split('T')[0] : '',
+          age,
+          categoryName: row.CategoryName || null,
+          subCategoryName: row.SubCategoryName || null,
         },
       });
     }

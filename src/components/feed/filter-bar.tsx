@@ -30,6 +30,7 @@ interface FilterBarProps {
     type: string;
     categoryId?: number;
     subCategoryId?: number;
+    selectedCategoryIds?: number[];
   }) => void;
 }
 
@@ -108,6 +109,7 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
   const [categories, setCategories] = useState<Record<string, Category[]>>({});
   const [loadingCats, setLoadingCats] = useState<string | null>(null);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [appliedCategoryCount, setAppliedCategoryCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const token =
@@ -203,8 +205,8 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
                 className={cn(
                   'inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all',
                   isActive
-                    ? 'border-gray-900 bg-gray-900 text-white'
-                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50'
+                    ? 'border-[#F26B50] bg-[#F26B50] text-white'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -222,9 +224,17 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
           {/* Advanced filters button */}
           <button
             onClick={() => setFilterModalOpen(true)}
-            className="ml-auto inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 transition-colors hover:border-gray-400 hover:bg-gray-50"
+            className={cn(
+              'ml-auto inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-sm transition-colors',
+              appliedCategoryCount > 0
+                ? 'border-[#F26B50] bg-[#F26B50] text-white'
+                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+            )}
           >
             <PiFunnelLight className="h-4 w-4" />
+            {appliedCategoryCount > 0 && (
+              <span className="text-xs font-semibold">{appliedCategoryCount}</span>
+            )}
           </button>
         </div>
 
@@ -254,7 +264,7 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
                           }
                           className={cn(
                             'flex flex-1 items-center justify-between px-4 py-3 text-left text-[15px] transition-colors hover:bg-gray-50',
-                            isExpanded ? 'bg-red-50 text-gray-900 font-medium' : 'text-gray-800'
+                            isExpanded ? 'bg-orange-50 text-gray-900 font-medium' : 'text-gray-800'
                           )}
                         >
                           <span>{cat.name}</span>
@@ -271,14 +281,14 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
 
                       {/* Subcategories (expanded) */}
                       {hasSubs && isExpanded && (
-                        <div className="bg-red-50/50">
+                        <div className="bg-orange-50/50">
                           {subs.map((sub) => (
                             <button
                               key={sub.id}
                               onClick={() =>
                                 handleSubCategorySelect(activeTab, cat.id, sub.id)
                               }
-                              className="block w-full px-4 py-2.5 pl-8 text-left text-[14px] text-gray-600 transition-colors hover:bg-red-100/50 hover:text-gray-900"
+                              className="block w-full px-4 py-2.5 pl-8 text-left text-[14px] text-gray-600 transition-colors hover:bg-orange-100/50 hover:text-gray-900"
                             >
                               {sub.name}
                             </button>
@@ -303,6 +313,7 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
         open={filterModalOpen}
         onClose={() => setFilterModalOpen(false)}
         onApply={(filters) => {
+          setAppliedCategoryCount(filters.selectedCategoryIds?.length || 0);
           onFilterChange(filters);
           setFilterModalOpen(false);
         }}

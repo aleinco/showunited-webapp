@@ -52,6 +52,7 @@ export default function HomePage() {
     type: string;
     categoryId?: number;
     subCategoryId?: number;
+    selectedCategoryIds?: number[];
   }>({ type: 'All' });
 
   const observerRef = useRef<HTMLDivElement>(null);
@@ -135,6 +136,7 @@ export default function HomePage() {
     type: string;
     categoryId?: number;
     subCategoryId?: number;
+    selectedCategoryIds?: number[];
   }) {
     setFilter(newFilter);
     setPage(1);

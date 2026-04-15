@@ -22,6 +22,10 @@ import {
   PiGenderIntersexLight,
   PiGlobeLight,
   PiFlagLight,
+  PiGridFourLight,
+  PiPencilSimpleLight,
+  PiFilePdfLight,
+  PiDownloadSimpleLight,
 } from 'react-icons/pi';
 
 /* ── Types ── */
@@ -69,6 +73,10 @@ interface UserImage {
   CompanyUserImage?: string;
 }
 
+interface CurriculumFile {
+  [key: string]: any;
+}
+
 interface FollowData {
   totalRecords: number;
 }
@@ -91,7 +99,7 @@ function formatCount(n: number): string {
 }
 
 /* ── Tab keys ── */
-type TabKey = 'media' | 'cv' | 'body';
+type TabKey = 'gallery' | 'portfolio' | 'curriculum';
 
 /* ── Main Component ── */
 export default function ProfilePage() {
@@ -103,7 +111,9 @@ export default function ProfilePage() {
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>('media');
+  const [activeTab, setActiveTab] = useState<TabKey>('gallery');
+  const [curriculumFiles, setCurriculumFiles] = useState<CurriculumFile[]>([]);
+  const [curriculumLoading, setCurriculumLoading] = useState(false);
 
   const token =
     typeof window !== 'undefined'
@@ -167,6 +177,27 @@ export default function ProfilePage() {
     load();
   }, [userId, token]);
 
+  /* ── Fetch curriculum when tab is active ── */
+  useEffect(() => {
+    if (activeTab !== 'curriculum' || !userId) return;
+
+    async function loadCurriculum() {
+      setCurriculumLoading(true);
+      try {
+        const res = await axios.post('/api/user/curriculum', { userId });
+        if (res.data?.ok) {
+          setCurriculumFiles(res.data.data || []);
+        }
+      } catch {
+        /* silent */
+      } finally {
+        setCurriculumLoading(false);
+      }
+    }
+
+    loadCurriculum();
+  }, [activeTab, userId]);
+
   /* ── Loading skeleton ── */
   if (loading) {
     return (
@@ -199,17 +230,19 @@ export default function ProfilePage() {
   const age = calculateAge(profile.BithDate);
   const location = [profile.CityId, profile.CountryId].filter(Boolean).join(', ');
   const category = profile.CategoryName || profile.SubCategoryName || '';
+  const categoryLine = [category, age !== null ? `${age} Years` : ''].filter(Boolean).join(', ');
   const images = profile.IndividualUserImageList || profile.CompanyUserImageList || [];
   const profileImage =
     images[0]?.IndividualUserImage ||
     images[0]?.CompanyUserImage ||
     profile.ProfileImage ||
     '';
+  const displayUserId = profile.IndividualUserId || profile.CompanyUserId;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 md:py-10">
-      {/* ── Header section (Instagram desktop style) ── */}
-      <div className="flex flex-col gap-6 md:flex-row md:gap-12">
+      {/* ── Header section (iOS-style centered) ── */}
+      <div className="flex flex-col items-center gap-4 md:flex-row md:items-start md:gap-12">
         {/* Avatar */}
         <div className="flex justify-center md:justify-start">
           <div className="relative">
@@ -229,13 +262,19 @@ export default function ProfilePage() {
 
         {/* Info */}
         <div className="flex flex-1 flex-col items-center md:items-start">
-          {/* Name row */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Name row with edit icon */}
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-bold text-gray-900 md:text-2xl">
               {name}
             </h1>
-            {age !== null && (
-              <span className="text-lg text-gray-400">{age}</span>
+            {isOwnProfile && (
+              <button
+                onClick={() => window.location.href = '/settings/profile'}
+                className="rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                title="Edit profile"
+              >
+                <PiPencilSimpleLight className="h-4 w-4" />
+              </button>
             )}
             {!isOwnProfile && (
               <button className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600">
@@ -244,46 +283,47 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* Category + Location */}
-          {(category || location) && (
-            <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-gray-500">
-              {category && (
-                <span className="font-medium text-[#F26B50]">{category}</span>
-              )}
-              {location && (
-                <span className="flex items-center gap-1">
-                  <PiMapPinLight className="h-4 w-4" />
-                  {location}
-                </span>
-              )}
-            </div>
+          {/* User ID */}
+          {displayUserId && (
+            <p className="mt-0.5 text-xs text-gray-400">
+              User ID : {displayUserId}
+            </p>
           )}
 
-          {/* Stats row */}
-          <div className="mt-4 flex items-center gap-8">
-            <div className="text-center md:text-left">
-              <span className="text-lg font-bold text-gray-900">
-                {images.length}
-              </span>
-              <span className="ml-1.5 text-sm text-gray-500">posts</span>
-            </div>
+          {/* Category + Age (e.g. "Dancer, 47 Years") */}
+          {categoryLine && (
+            <p className="mt-1.5 text-sm font-medium text-gray-600">
+              {categoryLine}
+            </p>
+          )}
+
+          {/* Location with pin icon */}
+          {location && (
+            <p className="mt-1 flex items-center gap-1 text-sm text-gray-500">
+              <PiMapPinLight className="h-4 w-4 text-[#F26B50]" />
+              {location}
+            </p>
+          )}
+
+          {/* Followers / Following row */}
+          <div className="mt-3 flex items-center gap-6">
             <Link
               href={`/followers/${userId}?tab=followers`}
               className="text-center md:text-left"
             >
-              <span className="text-lg font-bold text-gray-900">
+              <span className="text-sm font-bold text-gray-900">Followers</span>
+              <span className="ml-1.5 text-sm text-gray-500">
                 {formatCount(followers)}
               </span>
-              <span className="ml-1.5 text-sm text-gray-500">followers</span>
             </Link>
             <Link
               href={`/followers/${userId}?tab=following`}
               className="text-center md:text-left"
             >
-              <span className="text-lg font-bold text-gray-900">
+              <span className="text-sm font-bold text-gray-900">Following</span>
+              <span className="ml-1.5 text-sm text-gray-500">
                 {formatCount(following)}
               </span>
-              <span className="ml-1.5 text-sm text-gray-500">following</span>
             </Link>
           </div>
 
@@ -307,7 +347,7 @@ export default function ProfilePage() {
           )}
 
           {/* Action buttons */}
-          <div className="mt-5 flex flex-wrap items-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-3">
             {isOwnProfile ? (
               <>
                 <Button
@@ -371,25 +411,25 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ── Tabs ── */}
+      {/* ── Tabs (iOS-style: Gallery | Portfolio | Curriculum) ── */}
       <div className="mt-8 border-t border-gray-200">
-        <div className="flex items-center justify-center gap-12">
+        <div className="flex items-center justify-center gap-0">
           {([
-            { key: 'media' as TabKey, icon: PiImagesLight, label: 'POSTS' },
-            { key: 'cv' as TabKey, icon: PiFileTextLight, label: 'CV' },
-            { key: 'body' as TabKey, icon: PiRulerLight, label: 'BODY' },
+            { key: 'gallery' as TabKey, icon: PiImagesLight, label: 'Gallery' },
+            { key: 'portfolio' as TabKey, icon: PiGridFourLight, label: 'Portfolio' },
+            { key: 'curriculum' as TabKey, icon: PiFileTextLight, label: 'Curriculum' },
           ]).map(({ key, icon: Icon, label }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
-              className={`flex items-center gap-1.5 border-t-2 px-1 py-3 text-xs font-semibold uppercase tracking-wider transition ${
+              className={`flex flex-1 items-center justify-center gap-1.5 border-t-2 px-1 py-3 text-xs font-semibold uppercase tracking-wider transition ${
                 activeTab === key
-                  ? 'border-gray-900 text-gray-900'
+                  ? 'border-[#F26B50] text-[#F26B50]'
                   : 'border-transparent text-gray-400 hover:text-gray-600'
               }`}
             >
-              <Icon className="h-4 w-4" />
-              {label}
+              <Icon className="h-5 w-5" />
+              <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
         </div>
@@ -397,14 +437,14 @@ export default function ProfilePage() {
 
       {/* ── Tab Content ── */}
       <div className="mt-1">
-        {activeTab === 'media' && (
+        {activeTab === 'gallery' && (
           <MediaTab images={images} name={name} />
         )}
-        {activeTab === 'cv' && (
-          <CvTab profile={profile} />
+        {activeTab === 'portfolio' && (
+          <PortfolioTab profile={profile} />
         )}
-        {activeTab === 'body' && (
-          <BodyTab profile={profile} />
+        {activeTab === 'curriculum' && (
+          <CurriculumTab files={curriculumFiles} loading={curriculumLoading} />
         )}
       </div>
     </div>
@@ -451,49 +491,16 @@ function MediaTab({ images, name }: { images: UserImage[]; name: string }) {
   );
 }
 
-/* ── CV Tab ── */
-function CvTab({ profile }: { profile: UserProfile }) {
+/* ── Portfolio Tab (details + body measurements) ── */
+function PortfolioTab({ profile }: { profile: UserProfile }) {
   const details = [
     { icon: PiGenderIntersexLight, label: 'Gender', value: profile.Gender },
     { icon: PiCalendarBlankLight, label: 'Birth Date', value: profile.BithDate?.split('T')[0] },
     { icon: PiMapPinLight, label: 'Location', value: [profile.CityId, profile.CountryId].filter(Boolean).join(', ') },
     { icon: PiEnvelopeLight, label: 'Email', value: profile.Email || profile.EmailAddress },
     { icon: PiGlobeLight, label: 'Touring', value: profile.IsInterestedInInternationalTouring ? 'Available for international touring' : undefined },
-    { icon: PiStarLight, label: 'Subscription', value: profile.SubscriptionPlanId ? `Plan ${profile.SubscriptionPlanId}` : undefined },
   ].filter((d) => d.value);
 
-  if (details.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <PiFileTextLight className="mb-3 h-16 w-16 text-gray-300" />
-        <Text className="text-sm text-gray-400">No CV data available</Text>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-lg py-6">
-      <div className="space-y-4">
-        {details.map(({ icon: Icon, label, value }) => (
-          <div key={label} className="flex items-center gap-4 rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
-            <Icon className="h-5 w-5 flex-shrink-0 text-gray-400" />
-            <div>
-              <Text className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                {label}
-              </Text>
-              <Text className="text-sm font-medium text-gray-800">
-                {value}
-              </Text>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ── Body Tab ── */
-function BodyTab({ profile }: { profile: UserProfile }) {
   const measurements = [
     { label: 'Height', value: profile.Height },
     { label: 'Weight', value: profile.Weight },
@@ -505,31 +512,146 @@ function BodyTab({ profile }: { profile: UserProfile }) {
     { label: 'Shoe Size', value: profile.ShowSize },
   ].filter((m) => m.value);
 
-  if (measurements.length === 0) {
+  if (details.length === 0 && measurements.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <PiRulerLight className="mb-3 h-16 w-16 text-gray-300" />
-        <Text className="text-sm text-gray-400">No measurements available</Text>
+        <PiGridFourLight className="mb-3 h-16 w-16 text-gray-300" />
+        <Text className="text-sm text-gray-400">No portfolio data available</Text>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-lg py-6 space-y-6">
+      {/* Personal details */}
+      {details.length > 0 && (
+        <div className="space-y-3">
+          {details.map(({ icon: Icon, label, value }) => (
+            <div key={label} className="flex items-center gap-4 rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+              <Icon className="h-5 w-5 flex-shrink-0 text-gray-400" />
+              <div>
+                <Text className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                  {label}
+                </Text>
+                <Text className="text-sm font-medium text-gray-800">
+                  {value}
+                </Text>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Body measurements */}
+      {measurements.length > 0 && (
+        <>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            Measurements
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {measurements.map(({ label, value }) => (
+              <div
+                key={label}
+                className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-center"
+              >
+                <Text className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                  {label}
+                </Text>
+                <Text className="mt-1 text-lg font-bold text-gray-900">
+                  {value}
+                </Text>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Curriculum Tab ── */
+function CurriculumTab({
+  files,
+  loading,
+}: {
+  files: CurriculumFile[];
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900" />
+      </div>
+    );
+  }
+
+  if (files.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <PiFileTextLight className="mb-3 h-16 w-16 text-gray-300" />
+        <Text className="text-base font-medium text-gray-400">
+          No curriculum files uploaded
+        </Text>
+        <Text className="mt-1 text-sm text-gray-300">
+          CV and resume files will appear here
+        </Text>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-lg py-6">
-      <div className="grid grid-cols-2 gap-3">
-        {measurements.map(({ label, value }) => (
-          <div
-            key={label}
-            className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-center"
-          >
-            <Text className="text-xs font-medium uppercase tracking-wide text-gray-400">
-              {label}
-            </Text>
-            <Text className="mt-1 text-lg font-bold text-gray-900">
-              {value}
-            </Text>
-          </div>
-        ))}
+      <div className="space-y-3">
+        {files.map((file, i) => {
+          // Try to extract useful fields from the record
+          const fileName =
+            file.FileName ||
+            file.CurriculumName ||
+            file.DocumentName ||
+            file.FilePath?.split('/').pop() ||
+            `Curriculum ${i + 1}`;
+          const fileUrl =
+            file.FilePath ||
+            file.CurriculumPath ||
+            file.DocumentPath ||
+            file.FileUrl ||
+            '';
+          const uploadDate =
+            file.CreatedDTStamp ||
+            file.CreatedDate ||
+            file.UploadDate ||
+            '';
+
+          return (
+            <div
+              key={file.UserCurriculumId || file.Id || i}
+              className="flex items-center gap-4 rounded-lg border border-gray-100 bg-gray-50 px-4 py-3"
+            >
+              <PiFilePdfLight className="h-8 w-8 flex-shrink-0 text-[#F26B50]" />
+              <div className="min-w-0 flex-1">
+                <Text className="truncate text-sm font-medium text-gray-800">
+                  {fileName}
+                </Text>
+                {uploadDate && (
+                  <Text className="text-xs text-gray-400">
+                    {new Date(uploadDate).toLocaleDateString()}
+                  </Text>
+                )}
+              </div>
+              {fileUrl && (
+                <a
+                  href={fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0 rounded-full p-2 text-gray-400 transition hover:bg-gray-200 hover:text-gray-600"
+                  title="Download"
+                >
+                  <PiDownloadSimpleLight className="h-5 w-5" />
+                </a>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
