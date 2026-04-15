@@ -36,9 +36,7 @@ export async function POST(request: NextRequest) {
             CategoryId,
             SubCategoryId,
             SubCategory1Id,
-            VocalCategoryId,
-            AboutUs,
-            Website
+            VocalCategoryId
           FROM MasterIndividualUser
           WHERE IndividualUserId = @uid
         `);
@@ -160,15 +158,6 @@ export async function POST(request: NextRequest) {
         sets.push('SubCategoryId = @subCatId');
         req.input('subCatId', sql.Int, data.subCategoryId);
       }
-      if (data.aboutUs !== undefined) {
-        sets.push('AboutUs = @aboutUs');
-        req.input('aboutUs', sql.NVarChar(500), data.aboutUs);
-      }
-      if (data.website !== undefined) {
-        sets.push('Website = @website');
-        req.input('website', sql.NVarChar(500), data.website);
-      }
-
       if (sets.length === 0) {
         return NextResponse.json({ ok: false, error: 'No fields to update' }, { status: 400 });
       }

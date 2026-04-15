@@ -96,22 +96,31 @@ export default function EditProfilePage() {
     setSaving(true);
 
     try {
-      const res = await axios.post('/api/user/profile-data', {
+      // Save name/gender via SQL direct
+      const sqlRes = await axios.post('/api/user/profile-data', {
         action: 'save',
         userId,
         data: {
           firstName: form.firstName,
           lastName: form.lastName,
-          aboutUs: form.aboutUs,
-          website: form.website,
           gender: form.gender,
         },
       });
 
-      if (res.data?.ok) {
+      // Save aboutUs/website via REST API (these fields aren't in MasterIndividualUser table)
+      await axios.post('/api/user', {
+        endpoint: 'SaveIndividualUserProfile1Data',
+        token,
+        data: {
+          aboutUs: form.aboutUs,
+          website: form.website,
+        },
+      }).catch(() => {});
+
+      if (sqlRes.data?.ok) {
         toast.success('Profile updated successfully');
       } else {
-        toast.error(res.data?.error || 'Failed to update');
+        toast.error(sqlRes.data?.error || 'Failed to update');
       }
     } catch {
       toast.error('Connection error');
