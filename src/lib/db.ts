@@ -7,10 +7,10 @@ const config: sql.config = {
   password: process.env.DB_PASSWORD || '*suSU@1231234',
   port: 1433,
   options: {
-    encrypt: true,
+    encrypt: false,
     trustServerCertificate: true,
   },
-  connectionTimeout: 15000,
+  connectionTimeout: 30000,
   requestTimeout: 30000,
   pool: {
     max: 5,
