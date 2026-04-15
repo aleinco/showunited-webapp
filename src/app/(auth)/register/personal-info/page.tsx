@@ -105,11 +105,22 @@ export default function PersonalInfoPage() {
               isInterestedInInternationalTouring: internationalTouring,
             };
 
+      // Call Rushkar API
       const res = await axios.post('/api/user', {
         endpoint,
         token,
         data: payload,
       });
+
+      // Also save via SQL direct (Rushkar API silently drops some fields)
+      const uid = typeof window !== 'undefined' ? localStorage.getItem('su_register_userId') || '' : '';
+      if (uid && userType !== 'CompanyUser') {
+        await axios.post('/api/user/register-save', {
+          step: 'personal-info',
+          userId: uid,
+          data: payload,
+        }).catch(() => {});
+      }
 
       const data = res.data;
       if (data.responseCode === '1' || data.responseCode === '200') {

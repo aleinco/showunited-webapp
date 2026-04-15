@@ -47,32 +47,11 @@ export async function POST(request: NextRequest) {
 
       const row = result.recordset[0];
 
-      // Resolve country name from CountryId
-      let countryName = '';
-      if (row.CountryId) {
-        const cRes = await pool
-          .request()
-          .input('cid', sql.Int, row.CountryId)
-          .query('SELECT TOP 1 CountryName FROM MasterCountry WHERE CountryId = @cid');
-        if (cRes.recordset.length) countryName = cRes.recordset[0].CountryName;
-      }
-
-      // Resolve city name from CityId
-      let cityName = '';
-      if (row.CityId) {
-        const ciRes = await pool
-          .request()
-          .input('cid', sql.Int, row.CityId)
-          .query('SELECT TOP 1 CityName FROM MasterCity WHERE CityId = @cid');
-        if (ciRes.recordset.length) cityName = ciRes.recordset[0].CityName;
-      }
-
+      // CountryId and CityId are nvarchar(500) — they store text directly, not numeric IDs
       return NextResponse.json({
         ok: true,
         data: {
           ...row,
-          CountryName: countryName,
-          CityName: cityName,
           BithDate: row.BithDate ? new Date(row.BithDate).toISOString().split('T')[0] : '',
         },
       });
@@ -84,33 +63,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: false, error: 'Missing data' }, { status: 400 });
       }
 
-      // Resolve country name -> CountryId
-      let countryId: number | null = null;
-      if (data.countryName) {
-        const cRes = await pool
-          .request()
-          .input('cn', sql.NVarChar(200), data.countryName.trim())
-          .query('SELECT TOP 1 CountryId FROM MasterCountry WHERE CountryName = @cn');
-        if (cRes.recordset.length) {
-          countryId = cRes.recordset[0].CountryId;
-        }
-      }
-
-      // Resolve city name -> CityId
-      let cityId: number | null = null;
-      if (data.cityName) {
-        const cQuery = countryId
-          ? 'SELECT TOP 1 CityId FROM MasterCity WHERE CityName = @cn AND CountryId = @coid'
-          : 'SELECT TOP 1 CityId FROM MasterCity WHERE CityName = @cn';
-        const req = pool.request().input('cn', sql.NVarChar(200), data.cityName.trim());
-        if (countryId) req.input('coid', sql.Int, countryId);
-        const ciRes = await req.query(cQuery);
-        if (ciRes.recordset.length) {
-          cityId = ciRes.recordset[0].CityId;
-        }
-      }
-
-      // Build SET clauses dynamically
       const sets: string[] = [];
       const req = pool.request().input('uid', sql.Int, Number(userId));
 
@@ -138,13 +90,14 @@ export async function POST(request: NextRequest) {
         sets.push('PhoneNumber = @phone');
         req.input('phone', sql.NVarChar(50), data.phoneNumber);
       }
-      if (countryId !== null) {
+      // CountryId and CityId are nvarchar — store text directly
+      if (data.countryId !== undefined || data.countryName !== undefined) {
         sets.push('CountryId = @countryId');
-        req.input('countryId', sql.Int, countryId);
+        req.input('countryId', sql.NVarChar(500), data.countryId || data.countryName || '');
       }
-      if (cityId !== null) {
+      if (data.cityId !== undefined || data.cityName !== undefined) {
         sets.push('CityId = @cityId');
-        req.input('cityId', sql.Int, cityId);
+        req.input('cityId', sql.NVarChar(500), data.cityId || data.cityName || '');
       }
       if (data.isInterestedInInternationalTouring !== undefined) {
         sets.push('IsInterestedInInternationalTouring = @touring');
@@ -158,10 +111,12 @@ export async function POST(request: NextRequest) {
         sets.push('SubCategoryId = @subCatId');
         req.input('subCatId', sql.Int, data.subCategoryId);
       }
+
       if (sets.length === 0) {
         return NextResponse.json({ ok: false, error: 'No fields to update' }, { status: 400 });
       }
 
+      sets.push('UpdatedDTStamp = GETDATE()');
       await req.query(`UPDATE MasterIndividualUser SET ${sets.join(', ')} WHERE IndividualUserId = @uid`);
 
       return NextResponse.json({ ok: true, message: 'Profile updated' });

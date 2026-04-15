@@ -424,6 +424,16 @@ export default function CategoriesPage() {
         data: payload,
       });
 
+      // Also save via SQL direct (Rushkar API silently drops some fields)
+      const uid = typeof window !== 'undefined' ? localStorage.getItem('su_register_userId') || '' : '';
+      if (uid && userType !== 'CompanyUser') {
+        await axios.post('/api/user/register-save', {
+          step: 'categories',
+          userId: uid,
+          data: payload,
+        }).catch(() => {});
+      }
+
       const data = res.data;
       if (data.responseCode === '1' || data.responseCode === '200') {
         toast.success('Categories saved');
