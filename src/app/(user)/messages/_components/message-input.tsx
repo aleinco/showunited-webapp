@@ -16,7 +16,6 @@ export default function MessageInput({
 }: MessageInputProps) {
   const [text, setText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   function handleSend() {
     const trimmed = text.trim();
@@ -47,15 +46,19 @@ export default function MessageInput({
     if (file && onAttach) {
       onAttach(file);
     }
-    e.target.value = '';
+    if (e.target) e.target.value = '';
   }
 
   const hasText = text.trim().length > 0;
+  const fileInputId = 'chat-file-input';
 
   return (
     <div className="border-t border-gray-200 bg-white px-3 py-2.5">
       <div className="flex items-end gap-2">
-        <div className="relative flex flex-1 items-end rounded-full border border-gray-200 bg-gray-50 px-4 py-2">
+        <div
+          className="relative flex flex-1 items-end rounded-full bg-gray-50 px-4 py-2"
+          style={{ border: '1px solid #e5e7eb' }}
+        >
           <textarea
             ref={textareaRef}
             value={text}
@@ -64,23 +67,15 @@ export default function MessageInput({
             placeholder="Message"
             rows={1}
             disabled={disabled}
-            className="max-h-[120px] w-full resize-none bg-transparent text-[15px] text-gray-900 placeholder:text-gray-400 focus:outline-none disabled:opacity-50"
+            style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
+            className="max-h-[120px] w-full resize-none text-[15px] text-gray-900 placeholder:text-gray-400 disabled:opacity-50"
           />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={disabled}
-            className="ml-2 flex-shrink-0 text-gray-400 transition-colors hover:text-gray-600 disabled:opacity-50"
+          <label
+            htmlFor={fileInputId}
+            className="ml-2 flex-shrink-0 cursor-pointer text-gray-400 transition-colors hover:text-gray-600"
           >
             <PiPaperclipLight className="h-5 w-5" />
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
+          </label>
         </div>
 
         <button
@@ -96,6 +91,13 @@ export default function MessageInput({
           <PiPaperPlaneRightFill className="h-5 w-5" />
         </button>
       </div>
+
+      <input
+        id={fileInputId}
+        type="file"
+        onChange={handleFileChange}
+        className="hidden"
+      />
     </div>
   );
 }

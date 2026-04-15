@@ -23,14 +23,16 @@ export default function PersonalInfoPage() {
     lastName: '',
     gender: '',
     bithDate: '',
-    countryId: '',
-    cityId: '',
-    countryCallingCode: '+34',
+    countryName: '',
+    cityName: '',
+    countryCallingCode: '',
     phoneNumber: '',
     categoryId: 0,
     subCategoryId: 0,
     isInterestedInInternationalTouring: false,
   });
+
+  const [userId, setUserId] = useState(0);
 
   const token =
     typeof window !== 'undefined'
@@ -44,25 +46,25 @@ export default function PersonalInfoPage() {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       uid = Number(payload.IndividualUserId || 0);
-    } catch { return; }
+    } catch {
+      return;
+    }
+    setUserId(uid);
 
+    // Load from direct SQL route
     axios
-      .post('/api/user', {
-        endpoint: 'GetUserDetailById',
-        token,
-        data: { IndividualUserId: uid },
-      })
+      .post('/api/user/profile-data', { action: 'get', userId: uid })
       .then((res) => {
-        const d = res.data?.responseData;
-        if (!d) return;
+        if (!res.data?.ok) return;
+        const d = res.data.data;
         setForm({
           firstName: d.FirstName || '',
           lastName: d.LastName || '',
           gender: d.Gender || '',
-          bithDate: d.BithDate ? d.BithDate.split('T')[0] : '',
-          countryId: d.CountryId || '',
-          cityId: d.CityId || '',
-          countryCallingCode: d.CountryCallingCode || '+34',
+          bithDate: d.BithDate || '',
+          countryName: d.CountryName || '',
+          cityName: d.CityName || '',
+          countryCallingCode: d.CountryCallingCode || '',
           phoneNumber: d.PhoneNumber || '',
           categoryId: d.CategoryId || 0,
           subCategoryId: d.SubCategoryId || 0,
@@ -79,16 +81,16 @@ export default function PersonalInfoPage() {
     setSaving(true);
 
     try {
-      const res = await axios.post('/api/user', {
-        endpoint: 'SaveIndividualUserProfile1Data',
-        token,
+      const res = await axios.post('/api/user/profile-data', {
+        action: 'save',
+        userId,
         data: {
           firstName: form.firstName,
           lastName: form.lastName,
           gender: form.gender,
           bithDate: form.bithDate,
-          countryId: form.countryId,
-          cityId: form.cityId,
+          countryName: form.countryName,
+          cityName: form.cityName,
           countryCallingCode: form.countryCallingCode,
           phoneNumber: form.phoneNumber,
           categoryId: form.categoryId,
@@ -98,11 +100,10 @@ export default function PersonalInfoPage() {
         },
       });
 
-      const rc = String(res.data?.responseCode);
-      if (rc === '1' || rc === '200') {
+      if (res.data?.ok) {
         toast.success('Personal info updated');
       } else {
-        toast.error(res.data?.responseMessage || 'Failed to update');
+        toast.error(res.data?.error || 'Failed to update');
       }
     } catch {
       toast.error('Connection error');
@@ -209,9 +210,9 @@ export default function PersonalInfoPage() {
             <Input
               size="lg"
               inputClassName="text-sm"
-              placeholder="Spain"
-              value={form.countryId}
-              onChange={(e) => updateField('countryId', e.target.value)}
+              placeholder="France"
+              value={form.countryName}
+              onChange={(e) => updateField('countryName', e.target.value)}
             />
           </div>
           <div>
@@ -221,9 +222,9 @@ export default function PersonalInfoPage() {
             <Input
               size="lg"
               inputClassName="text-sm"
-              placeholder="Madrid"
-              value={form.cityId}
-              onChange={(e) => updateField('cityId', e.target.value)}
+              placeholder="Paris"
+              value={form.cityName}
+              onChange={(e) => updateField('cityName', e.target.value)}
             />
           </div>
         </div>
@@ -238,6 +239,7 @@ export default function PersonalInfoPage() {
               size="lg"
               inputClassName="text-sm text-center"
               className="w-20"
+              placeholder="+33"
               value={form.countryCallingCode}
               onChange={(e) =>
                 updateField('countryCallingCode', e.target.value)
@@ -247,7 +249,7 @@ export default function PersonalInfoPage() {
               size="lg"
               inputClassName="text-sm"
               className="flex-1"
-              placeholder="639 568 353"
+              placeholder="612 345 678"
               value={form.phoneNumber}
               onChange={(e) => updateField('phoneNumber', e.target.value)}
             />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { Input, Textarea, Select, Button, Text } from 'rizzui';
@@ -16,8 +16,10 @@ const GENDER_OPTIONS = [
 
 export default function EditProfilePage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const [form, setForm] = useState({
     firstName: '',
@@ -48,40 +50,55 @@ export default function EditProfilePage() {
     }
     setUserId(uid);
 
-    axios
-      .post('/api/user', {
-        endpoint: 'GetUserDetailById',
-        token,
-        data: { IndividualUserId: uid },
+    // Load profile fields from direct SQL route
+    const loadProfile = axios.post('/api/user/profile-data', {
+      action: 'get',
+      userId: uid,
+    });
+
+    // Load profile image from external API (it returns IndividualUserImageList)
+    const loadImage = axios.post('/api/user', {
+      endpoint: 'GetUserDetailById',
+      token,
+      data: { IndividualUserId: uid },
+    });
+
+    Promise.allSettled([loadProfile, loadImage])
+      .then(([profileRes, imageRes]) => {
+        // Profile fields from SQL
+        if (profileRes.status === 'fulfilled' && profileRes.value.data?.ok) {
+          const d = profileRes.value.data.data;
+          setForm({
+            firstName: d.FirstName || '',
+            lastName: d.LastName || '',
+            aboutUs: d.AboutUs || '',
+            website: d.Website || '',
+            gender: d.Gender || '',
+          });
+        }
+
+        // Profile image from external API
+        if (imageRes.status === 'fulfilled') {
+          const d = imageRes.value.data?.responseData;
+          if (d) {
+            const images = d.IndividualUserImageList || [];
+            const imgUrl = images[0]?.IndividualUserImage || d.ProfileImage || '';
+            setProfileImage(imgUrl);
+          }
+        }
       })
-      .then((res) => {
-        const d = res.data?.responseData;
-        if (!d) return;
-        setForm({
-          firstName: d.FirstName || '',
-          lastName: d.LastName || '',
-          aboutUs: d.AboutUs || '',
-          website: d.Website || '',
-          gender: d.Gender || '',
-        });
-        const images = d.IndividualUserImageList || [];
-        setProfileImage(
-          images[0]?.IndividualUserImage || d.ProfileImage || ''
-        );
-      })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, [token]);
 
-  /* ── Save ── */
+  /* ── Save profile fields via direct SQL ── */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
 
     try {
-      const res = await axios.post('/api/user', {
-        endpoint: 'SaveIndividualUserProfile1Data',
-        token,
+      const res = await axios.post('/api/user/profile-data', {
+        action: 'save',
+        userId,
         data: {
           firstName: form.firstName,
           lastName: form.lastName,
@@ -91,16 +108,80 @@ export default function EditProfilePage() {
         },
       });
 
-      const rc = String(res.data?.responseCode);
-      if (rc === '1' || rc === '200') {
+      if (res.data?.ok) {
         toast.success('Profile updated successfully');
       } else {
-        toast.error(res.data?.responseMessage || 'Failed to update');
+        toast.error(res.data?.error || 'Failed to update');
       }
     } catch {
       toast.error('Connection error');
     } finally {
       setSaving(false);
+    }
+  }
+
+  /* ── Photo upload ── */
+  function handleChangePhotoClick() {
+    fileInputRef.current?.click();
+  }
+
+  async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be smaller than 5MB');
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('token', token);
+      formData.append('endpoint', 'SaveIndividualUserImage');
+      formData.append('files', file);
+
+      const res = await axios.post('/api/user/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const rc = String(res.data?.responseCode);
+      if (rc === '1' || rc === '200') {
+        toast.success('Photo updated successfully');
+
+        // Reload the image from external API
+        try {
+          const imgRes = await axios.post('/api/user', {
+            endpoint: 'GetUserDetailById',
+            token,
+            data: { IndividualUserId: userId },
+          });
+          const d = imgRes.data?.responseData;
+          if (d) {
+            const images = d.IndividualUserImageList || [];
+            const imgUrl = images[0]?.IndividualUserImage || d.ProfileImage || '';
+            setProfileImage(imgUrl ? `${imgUrl}?t=${Date.now()}` : '');
+          }
+        } catch {
+          // Image reload failed, but upload was successful
+        }
+      } else {
+        toast.error(res.data?.responseMessage || 'Upload failed');
+      }
+    } catch {
+      toast.error('Upload failed — connection error');
+    } finally {
+      setUploading(false);
+      // Reset file input so same file can be selected again
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }
 
@@ -118,6 +199,15 @@ export default function EditProfilePage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Hidden file input for photo upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
+
       {/* Mobile header */}
       <div className="flex items-center border-b border-gray-100 px-4 py-3 md:hidden">
         <button
@@ -140,17 +230,24 @@ export default function EditProfilePage() {
       <form onSubmit={handleSubmit} className="mx-auto max-w-lg space-y-6 px-5 py-6 md:px-8">
         {/* Avatar + Change Photo */}
         <div className="flex items-center gap-5 rounded-2xl bg-gray-50 px-5 py-4">
-          {profileImage ? (
-            <img
-              src={profileImage}
-              alt="Profile"
-              className="h-16 w-16 rounded-full border border-gray-200 object-cover"
-            />
-          ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-orange-100 to-orange-50 text-xl font-bold text-[#F26B50]">
-              {form.firstName.charAt(0) || '?'}
-            </div>
-          )}
+          <div className="relative">
+            {profileImage ? (
+              <img
+                src={profileImage}
+                alt="Profile"
+                className="h-16 w-16 rounded-full border border-gray-200 object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-orange-100 to-orange-50 text-xl font-bold text-[#F26B50]">
+                {form.firstName.charAt(0) || '?'}
+              </div>
+            )}
+            {uploading && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              </div>
+            )}
+          </div>
           <div className="flex-1">
             <Text className="text-sm font-semibold text-gray-900">
               {form.firstName} {form.lastName}
@@ -161,8 +258,11 @@ export default function EditProfilePage() {
             size="sm"
             className="rounded-lg text-xs font-semibold"
             style={{ backgroundColor: '#F26B50', color: 'white' }}
+            onClick={handleChangePhotoClick}
+            type="button"
+            disabled={uploading}
           >
-            Change Photo
+            {uploading ? 'Uploading...' : 'Change Photo'}
           </Button>
         </div>
 

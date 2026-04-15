@@ -105,7 +105,10 @@ export default function MessagesPage() {
   }
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
     let cancelled = false;
 

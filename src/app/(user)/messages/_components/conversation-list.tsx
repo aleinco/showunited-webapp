@@ -52,7 +52,7 @@ export default function ConversationList({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Company, Name..."
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-gray-300 focus:outline-none"
+            className="w-full rounded-lg border-0 bg-gray-50 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-0"
           />
         </div>
 

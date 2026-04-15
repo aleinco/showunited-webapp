@@ -108,7 +108,7 @@ export default function AdminChatView({
         />
       )}
 
-      <MessageInput onSend={handleSend} />
+      <MessageInput onSend={handleSend} onAttach={(file) => { /* TODO: upload to AdminChat ChatImage */ }} />
     </div>
   );
 }
