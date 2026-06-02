@@ -411,13 +411,13 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ── Tabs (iOS-style: Gallery | Portfolio | Curriculum) ── */}
+      {/* ── Tabs (iOS-style: Gallery | Stats | CV) ── */}
       <div className="mt-8 border-t border-gray-200">
         <div className="flex items-center justify-center gap-0">
           {([
             { key: 'gallery' as TabKey, icon: PiImagesLight, label: 'Gallery' },
-            { key: 'portfolio' as TabKey, icon: PiGridFourLight, label: 'Portfolio' },
-            { key: 'curriculum' as TabKey, icon: PiFileTextLight, label: 'Curriculum' },
+            { key: 'portfolio' as TabKey, icon: PiGridFourLight, label: 'Stats' },
+            { key: 'curriculum' as TabKey, icon: PiFileTextLight, label: 'CV' },
           ]).map(({ key, icon: Icon, label }) => (
             <button
               key={key}

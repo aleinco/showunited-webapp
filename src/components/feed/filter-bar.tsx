@@ -110,12 +110,47 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
   const [loadingCats, setLoadingCats] = useState<string | null>(null);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [appliedCategoryCount, setAppliedCategoryCount] = useState(0);
+  // Live subcategories from the API, keyed by parent category id. Falls back to
+  // the static SUB_CATEGORIES below for anything the API doesn't return.
+  const [apiSubs, setApiSubs] = useState<Record<number, SubCategory[]>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const token =
     typeof window !== 'undefined'
       ? localStorage.getItem('su_register_token') || ''
       : '';
+
+  // Load the live taxonomy (parents + nested subcategories) so subcategory
+  // names/ids always match the backend instead of drifting from a frozen copy.
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axios.post('/api/user', {
+          endpoint: 'GetCategoryList',
+          token,
+          data: {},
+        });
+        const rd = res.data?.responseData;
+        if (!Array.isArray(rd)) return;
+        const map: Record<number, SubCategory[]> = {};
+        for (const cat of rd) {
+          const subs = cat?.CompanySubCategoryList;
+          if (Array.isArray(subs) && subs.length) {
+            map[cat.Value] = subs.map(
+              (s: { Value: number; Name: string }) => ({
+                id: s.Value,
+                categoryId: cat.Value,
+                name: (s.Name || '').trim(),
+              })
+            );
+          }
+        }
+        if (Object.keys(map).length) setApiSubs(map);
+      } catch {
+        /* keep the static fallback */
+      }
+    })();
+  }, [token]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -187,7 +222,8 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
   }
 
   function getSubCategoriesForCat(catId: number): SubCategory[] {
-    return SUB_CATEGORIES.filter((sc) => sc.categoryId === catId);
+    // Prefer the live API taxonomy; fall back to the static list.
+    return apiSubs[catId] ?? SUB_CATEGORIES.filter((sc) => sc.categoryId === catId);
   }
 
   return (
