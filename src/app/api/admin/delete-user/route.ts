@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getValidatedAdminSession, adminUnauthorized } from '@/lib/admin-auth';
 
 export async function POST(request: NextRequest) {
+  if (!(await getValidatedAdminSession())) return adminUnauthorized();
   try {
     const { id, type } = await request.json();
 

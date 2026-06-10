@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { getValidatedAdminSession, adminUnauthorized } from '@/lib/admin-auth';
 
 // SMTP config — can be overridden by env vars
 const SMTP_HOST = process.env.SMTP_HOST || 'a-digital-net.correoseguro.dinaserver.com';
@@ -23,6 +24,7 @@ interface SendEmailRequest {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await getValidatedAdminSession())) return adminUnauthorized();
   try {
     const body: SendEmailRequest = await request.json();
     const { to, cc, bcc, subject, body_html } = body;

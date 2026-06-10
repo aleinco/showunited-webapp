@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isValidAdminSession } from '@/lib/admin-session';
 
 const publicPaths = [
   '/signin',
@@ -20,8 +21,22 @@ const publicPaths = [
   '/settings',
 ];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Admin API routes require a VALIDATED admin session (verified against the .NET backend),
+  // except the login endpoint itself. This is the single enforcement point for every
+  // /api/admin/* route — including ones that historically shipped without their own guard.
+  if (pathname.startsWith('/api/admin/') && pathname !== '/api/admin/login') {
+    const ok = await isValidAdminSession(request.cookies.get('admin_session')?.value);
+    if (!ok) {
+      return NextResponse.json(
+        { responseCode: 'unauthorized', responseMessage: 'Not logged in', error: 'unauthorized' },
+        { status: 401 }
+      );
+    }
+    return NextResponse.next();
+  }
 
   // Allow public paths and static assets
   if (

@@ -42,6 +42,16 @@ export const menuItems = [
     href: '/pending-listings',
     icon: <PiMusicNotesDuotone />,
   },
+  {
+    name: 'Jobs',
+    href: '/listings/jobs',
+    icon: <PiBriefcaseDuotone />,
+  },
+  {
+    name: 'Auditions',
+    href: '/listings/auditions',
+    icon: <PiMusicNotesDuotone />,
+  },
 
   {
     name: 'User Management',
