@@ -37,6 +37,7 @@ export async function GET() {
       LEFT JOIN MasterCategory cat  ON j.CategoryId    = cat.CategoryId
       LEFT JOIN MasterSubCategory sc ON j.SubCategoryId = sc.SubCategoryId
       LEFT JOIN MasterStatus ms     ON j.StatusId      = ms.StatusId
+      WHERE j.StatusId <> 3
       ORDER BY j.UpdatedDTStamp DESC, j.DTStamp DESC
     `);
 
