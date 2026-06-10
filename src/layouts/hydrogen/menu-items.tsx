@@ -35,6 +35,15 @@ export const menuItems = [
   },
 
   {
+    name: 'Casting',
+  },
+  {
+    name: 'Pending Listings',
+    href: '/pending-listings',
+    icon: <PiMusicNotesDuotone />,
+  },
+
+  {
     name: 'User Management',
   },
   {
