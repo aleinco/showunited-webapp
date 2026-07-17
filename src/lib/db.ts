@@ -1,10 +1,14 @@
 import sql from 'mssql';
 
+if (!process.env.DB_PASSWORD) {
+  throw new Error('DB_PASSWORD env var is required (no hardcoded credentials).');
+}
+
 const config: sql.config = {
   server: process.env.DB_HOST || '54.247.133.88',
   database: process.env.DB_NAME || 'ShowUnited',
-  user: process.env.DB_USER || 'admin',
-  password: process.env.DB_PASSWORD || '*suSU@1231234',
+  user: process.env.DB_USER || 'su_app',
+  password: process.env.DB_PASSWORD,
   port: 1433,
   options: {
     encrypt: false,
